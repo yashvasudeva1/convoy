@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  IN_SHOP
+  RETIRED
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+  SUSPENDED
+}
+
+enum TripStatus {
+  PENDING
+  DISPATCHED
+  COMPLETED
+  CANCELLED
+}
+
+// Provisional stub — Member 1 owns the full Vehicle model (registration, CRUD, etc).
+// Only fields needed here for trip business rules.
+model Vehicle {
+  id           String        @id @default(cuid())
+  status       VehicleStatus @default(AVAILABLE)
+  capacityKg   Float
+  trips        Trip[]
+  fuelLogs     FuelLog[]
+  expenseLogs  ExpenseLog[]
+}
+
+// Provisional stub — Member 1 owns the full Driver model (CRUD, safety score, etc).
+model Driver {
+  id             String       @id @default(cuid())
+  status         DriverStatus @default(AVAILABLE)
+  licenseExpiry  DateTime
+  trips          Trip[]
+}
+
+model Trip {
+  id            String     @id @default(cuid())
+  vehicleId     String
+  driverId      String
+  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver        Driver     @relation(fields: [driverId], references: [id])
+  origin        String
+  destination   String
+  cargoWeightKg Float
+  status        TripStatus @default(PENDING)
+  createdAt     DateTime   @default(now())
+  dispatchedAt  DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+
+  fuelLogs      FuelLog[]
+  expenseLogs   ExpenseLog[]
+}
+
+model FuelLog {
+  id         String   @id @default(cuid())
+  tripId     String?
+  vehicleId  String
+  trip       Trip?    @relation(fields: [tripId], references: [id])
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id])
+  liters     Float
+  cost       Float
+  odometer   Float?
+  loggedAt   DateTime @default(now())
+}
+
+model ExpenseLog {
+  id          String   @id @default(cuid())
+  tripId      String?
+  vehicleId   String
+  trip        Trip?    @relation(fields: [tripId], references: [id])
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  category    String
+  amount      Float
+  description String?
+  loggedAt    DateTime @default(now())
+}
