@@ -3,36 +3,36 @@ import { AppError } from "../../middleware/errorHandler";
 
 export function assertVehicleAssignable(vehicle: Vehicle, cargoWeightKg: number) {
   if (vehicle.status === "RETIRED") {
-    throw new AppError("Vehicle is retired", 422);
+    throw new AppError(422, "Vehicle is retired");
   }
   if (vehicle.status === "IN_SHOP") {
-    throw new AppError("Vehicle is in shop", 422);
+    throw new AppError(422, "Vehicle is in shop");
   }
   if (vehicle.status === "ON_TRIP") {
-    throw new AppError("Vehicle is already on a trip", 422);
+    throw new AppError(422, "Vehicle is already on a trip");
   }
   if (vehicle.status !== "AVAILABLE") {
-    throw new AppError("Vehicle is not available", 422);
+    throw new AppError(422, "Vehicle is not available");
   }
   if (cargoWeightKg > vehicle.capacityKg) {
     throw new AppError(
-      `Cargo weight (${cargoWeightKg}kg) exceeds vehicle capacity (${vehicle.capacityKg}kg)`,
-      422
+      422,
+      `Cargo weight (${cargoWeightKg}kg) exceeds vehicle capacity (${vehicle.capacityKg}kg)`
     );
   }
 }
 
 export function assertDriverAssignable(driver: Driver) {
   if (driver.status === "SUSPENDED") {
-    throw new AppError("Driver is suspended", 422);
+    throw new AppError(422, "Driver is suspended");
   }
   if (driver.status === "ON_TRIP") {
-    throw new AppError("Driver is already on a trip", 422);
+    throw new AppError(422, "Driver is already on a trip");
   }
   if (driver.status !== "AVAILABLE") {
-    throw new AppError("Driver is not available", 422);
+    throw new AppError(422, "Driver is not available");
   }
   if (driver.licenseExpiry.getTime() < Date.now()) {
-    throw new AppError("Driver license has expired", 422);
+    throw new AppError(422, "Driver license has expired");
   }
 }

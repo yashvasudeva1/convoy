@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { asyncHandler } from "../../middleware/errorHandler";
+import { asyncHandler } from "../../utils/asyncHandler";
 import { createFuelLogSchema } from "./schemas";
 import { createFuelLog, listFuelLogs } from "./service";
 
