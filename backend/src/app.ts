@@ -4,6 +4,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { authRouter } from "./modules/auth/auth.routes";
 import { vehicleRouter } from "./modules/vehicles/vehicle.routes";
 import { driverRouter } from "./modules/drivers/driver.routes";
+import { maintenanceRouter } from "./modules/maintenance/maintenance.routes";
 
 export function createApp() {
   const app = express();
@@ -18,6 +19,7 @@ export function createApp() {
   app.use(authRouter);
   app.use("/vehicles", vehicleRouter);
   app.use("/drivers", driverRouter);
+  app.use("/maintenance", maintenanceRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
