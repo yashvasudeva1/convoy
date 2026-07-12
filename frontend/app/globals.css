@@ -437,7 +437,7 @@ html, body {
   }
 
   .login-branding {
-    display: none;
+    display: none !important;
   }
 }
 
