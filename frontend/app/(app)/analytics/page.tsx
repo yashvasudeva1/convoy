@@ -8,9 +8,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { Download } from 'lucide-react';
 import { useUser } from '@/components/usercontext';
 import AccessDenied from '@/components/accessdenied';
 import { api } from '@/lib/api';
+import { downloadCsv } from '@/lib/csv';
 import { ApiAnalytics, ApiVehicle } from '@/lib/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,6 +82,28 @@ export default function AnalyticsPage() {
     ? analytics.vehicleROI.map(v => ({ vehicle: vehicleLabel(v.vehicleId), trips: v.completedTrips, cost: v.cost }))
     : [];
 
+  const exportCsv = () => {
+    if (!analytics) return;
+    const fuelByVehicle = new Map(analytics.fuelEfficiency.perVehicle.map(v => [v.vehicleId, v]));
+    const rows = analytics.vehicleROI.map(v => {
+      const fuel = fuelByVehicle.get(v.vehicleId);
+      return [
+        vehicleLabel(v.vehicleId),
+        v.completedTrips,
+        v.cost.toFixed(2),
+        v.tripsPerCostUnit.toFixed(4),
+        fuel ? fuel.kmPerLiter.toFixed(2) : '',
+        fuel ? fuel.distance : '',
+        fuel ? fuel.totalLiters : '',
+      ];
+    });
+    downloadCsv(
+      `transitops-analytics-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Vehicle', 'Completed Trips', 'Cost (INR)', 'Cost Efficiency (trips/INR)', 'Fuel Efficiency (km/l)', 'Distance (km)', 'Fuel Used (L)'],
+      rows
+    );
+  };
+
   return (
     <>
       <Topbar title="Analytics" />
@@ -89,6 +113,13 @@ export default function AnalyticsPage() {
             <span>Could not load analytics data.</span>
           </div>
         )}
+
+        <div className="section-header">
+          <span className="section-title">Fleet Reports</span>
+          <button className="btn-secondary" onClick={exportCsv} disabled={!analytics} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
 
         {/* kpis */}
         <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 24 }}>
@@ -116,7 +147,7 @@ export default function AnalyticsPage() {
           Cost Efficiency = Completed Trips / Operational Cost (fuel + expenses) — no revenue/acquisition-cost tracking yet
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, marginBottom: 16 }}>
+        <div className="split-panel-right" style={{ gridTemplateColumns: '1fr 280px', gap: 16, marginBottom: 16 }}>
           {/* trips vs cost per vehicle */}
           <div className="surface">
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>

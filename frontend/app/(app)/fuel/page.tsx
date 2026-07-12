@@ -119,6 +119,7 @@ export default function FuelPage() {
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
             <span className="section-title">Fuel Logs</span>
           </div>
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -145,6 +146,7 @@ export default function FuelPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* other expenses */}
@@ -152,6 +154,7 @@ export default function FuelPage() {
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
             <span className="section-title">Other Expenses</span>
           </div>
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -176,6 +179,7 @@ export default function FuelPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* total operational cost */}

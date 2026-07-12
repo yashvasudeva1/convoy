@@ -5,6 +5,7 @@ import Sidebar from '@/components/layout/sidebar';
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/components/usercontext';
+import { SidebarProvider } from '@/components/layout/sidebarcontext';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -19,11 +20,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (!ready || !isAuthenticated) return null;
 
   return (
-    <div className="page-root">
-      <Sidebar />
-      <div className="page-main">
-        {children}
+    <SidebarProvider>
+      <div className="page-root">
+        <Sidebar />
+        <div className="page-main">
+          {children}
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

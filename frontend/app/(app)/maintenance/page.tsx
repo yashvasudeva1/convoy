@@ -61,7 +61,7 @@ export default function MaintenancePage() {
     },
   });
 
-  if (user?.role !== 'Fleet Manager') return <AccessDenied />;
+  if (user?.role !== 'Fleet Manager' && user?.role !== 'Safety Officer') return <AccessDenied />;
 
   const onSubmit = (data: FormData) => {
     setFormError('');
@@ -77,7 +77,7 @@ export default function MaintenancePage() {
     <>
       <Topbar title="Maintenance" />
       <div className="page-content">
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16, alignItems: 'start' }}>
+        <div className="split-panel" style={{ gridTemplateColumns: '300px 1fr', gap: 16 }}>
           {/* log form */}
           <div className="surface">
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
@@ -131,6 +131,7 @@ export default function MaintenancePage() {
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
               <span className="section-title">Service Log</span>
             </div>
+            <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -178,6 +179,7 @@ export default function MaintenancePage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>

@@ -113,7 +113,7 @@ export default function TripsPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 16, alignItems: 'start' }}>
+        <div className="split-panel" style={{ gridTemplateColumns: '340px 1fr', gap: 16 }}>
           {/* create trip form */}
           {canEdit && (
             <div className="surface">

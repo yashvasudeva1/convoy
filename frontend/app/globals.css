@@ -377,3 +377,72 @@ html, body {
   border-radius: 8px;
   overflow: hidden;
 }
+
+/* scrollable table wrapper — keeps wide tables from breaking layout on small screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* two-column layouts used across pages (form/detail panel + main panel) —
+   each page sets its own gridTemplateColumns inline; these classes just
+   give the responsive media query below a selector to stack them on. */
+.split-panel,
+.split-panel-right {
+  display: grid;
+  align-items: start;
+}
+
+/* responsive breakpoints */
+.hamburger-btn {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .split-panel,
+  .split-panel-right {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 110;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.sidebar-overlay-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 105;
+  }
+
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  .login-branding {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

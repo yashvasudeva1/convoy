@@ -148,6 +148,7 @@ export default function DriversPage() {
 
         {/* table */}
         <div className="surface">
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -222,6 +223,7 @@ export default function DriversPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* status toggle legend */}

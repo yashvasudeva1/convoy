@@ -9,6 +9,14 @@ import { LoginResponse } from '@/lib/types';
 
 const roles = ['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'];
 
+const DEMO_PASSWORD = 'password123';
+const DEMO_ACCOUNTS = [
+  { role: 'Fleet Manager', email: 'fleet.manager@transitops.dev' },
+  { role: 'Dispatcher', email: 'dispatcher@transitops.dev' },
+  { role: 'Safety Officer', email: 'safety.officer@transitops.dev' },
+  { role: 'Financial Analyst', email: 'financial.analyst@transitops.dev' },
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useUser();
@@ -17,16 +25,15 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = async (emailToUse: string, passwordToUse: string) => {
     setError('');
-    if (!email || !password) {
+    if (!emailToUse || !passwordToUse) {
       setError('All fields are required.');
       return;
     }
     setLoading(true);
     try {
-      const res = await api.post<LoginResponse>('/login', { email, password });
+      const res = await api.post<LoginResponse>('/login', { email: emailToUse, password: passwordToUse });
       login(res.token, res.user);
       router.push('/dashboard');
     } catch (err) {
@@ -34,6 +41,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doLogin(email, password);
+  };
+
+  const quickLogin = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword(DEMO_PASSWORD);
+    doLogin(demoEmail, DEMO_PASSWORD);
   };
 
   return (
@@ -44,8 +62,9 @@ export default function LoginPage() {
         background: 'var(--bg-base)',
       }}
     >
-      {/* left panel */}
+      {/* left panel — hidden on narrow screens via .login-branding media query */}
       <div
+        className="login-branding"
         style={{
           width: 380,
           minWidth: 380,
@@ -115,9 +134,11 @@ export default function LoginPage() {
           alignItems: 'center',
           justifyContent: 'center',
           background: 'var(--bg-surface)',
+          padding: '24px 16px',
+          overflowY: 'auto',
         }}
       >
-        <div style={{ width: 360 }}>
+        <div style={{ width: '100%', maxWidth: 360 }}>
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
               Sign in to Convoy
@@ -158,16 +179,6 @@ export default function LoginPage() {
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                <input type="checkbox" style={{ accentColor: 'var(--accent-blue)' }} />
-                Remember me
-              </label>
-              <a href="#" style={{ fontSize: 12, color: 'var(--accent-blue)', textDecoration: 'none' }}>
-                Forgot password?
-              </a>
-            </div>
-
             <button
               type="submit"
               className="btn-primary"
@@ -177,6 +188,27 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border-muted)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Demo accounts (password: {DEMO_PASSWORD})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {DEMO_ACCOUNTS.map(acc => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => quickLogin(acc.email)}
+                  disabled={loading}
+                  className="btn-ghost"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '8px 12px', textAlign: 'left' }}
+                >
+                  <span>{acc.role}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{acc.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

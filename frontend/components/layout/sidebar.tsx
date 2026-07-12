@@ -14,13 +14,14 @@ import {
   Settings,
 } from 'lucide-react';
 import { useUser } from '@/components/usercontext';
+import { useSidebar } from '@/components/layout/sidebarcontext';
 
 const nav = [
   { label: 'Dashboard',       href: '/dashboard',   icon: LayoutDashboard, roles: ['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'] },
   { label: 'Fleet',           href: '/fleet',        icon: Truck, roles: ['Fleet Manager', 'Dispatcher', 'Financial Analyst'] },
   { label: 'Drivers',         href: '/drivers',      icon: Users, roles: ['Fleet Manager', 'Safety Officer'] },
   { label: 'Trips',           href: '/trips',        icon: Route, roles: ['Dispatcher', 'Safety Officer'] },
-  { label: 'Maintenance',     href: '/maintenance',  icon: Wrench, roles: ['Fleet Manager'] },
+  { label: 'Maintenance',     href: '/maintenance',  icon: Wrench, roles: ['Fleet Manager', 'Safety Officer'] },
   { label: 'Fuel & Expenses', href: '/fuel',         icon: Fuel, roles: ['Financial Analyst'] },
   { label: 'Analytics',       href: '/analytics',    icon: BarChart2, roles: ['Fleet Manager', 'Financial Analyst'] },
   { label: 'Settings',        href: '/settings',     icon: Settings, roles: ['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'] },
@@ -29,11 +30,15 @@ const nav = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { mobileOpen, close } = useSidebar();
 
   const allowedNav = nav.filter(item => item.roles.includes(user.role));
 
   return (
+    <>
+    {mobileOpen && <div className="sidebar-overlay sidebar-overlay-open" onClick={close} />}
     <aside
+      className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}
       style={{
         width: 200,
         minWidth: 200,
@@ -83,6 +88,7 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={close}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -130,5 +136,6 @@ export default function Sidebar() {
         CONVOY © 2026
       </div>
     </aside>
+    </>
   );
 }

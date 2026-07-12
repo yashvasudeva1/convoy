@@ -162,6 +162,7 @@ export default function FleetPage() {
 
         {/* table */}
         <div className="surface">
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -208,6 +209,7 @@ export default function FleetPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

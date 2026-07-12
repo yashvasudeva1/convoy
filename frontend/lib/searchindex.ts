@@ -32,7 +32,7 @@ export const searchIndex: SearchResult[] = [
   { type: 'page',    label: 'Trips',          sub: 'Trip dispatcher and live board',    href: '/trips' },
   { type: 'page',    label: 'Maintenance',    sub: 'Service logs and vehicle shop',     href: '/maintenance' },
   { type: 'page',    label: 'Fuel & Expenses',sub: 'Fuel logs and cost tracking',       href: '/fuel' },
-  { type: 'page',    label: 'Analytics',      sub: 'Reports, charts and ROI',           href: '/analytics' },
+  { type: 'page',    label: 'Analytics',      sub: 'Reports, charts and cost efficiency', href: '/analytics' },
   { type: 'page',    label: 'Settings',       sub: 'General config and RBAC',           href: '/settings' },
 ];
 

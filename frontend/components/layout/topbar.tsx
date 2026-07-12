@@ -3,9 +3,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sun, Moon, Bell, Search, Check, X, Truck, Users, Route, FileText } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, Search, Check, X, Truck, Users, Route, FileText } from 'lucide-react';
 import { useTheme } from '@/components/themecontext';
 import { useUser } from '@/components/usercontext';
+import { useSidebar } from '@/components/layout/sidebarcontext';
 import { useForm } from 'react-hook-form';
 import Modal from '@/components/modal';
 import { runSearch, SearchResult } from '@/lib/searchindex';
@@ -45,6 +46,7 @@ export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const { user, update, logout } = useUser();
+  const { toggle: toggleSidebar } = useSidebar();
 
   // notifications
   const [notifications, setNotifications]   = useState<Notification[]>(initialNotifications);
@@ -136,10 +138,28 @@ export default function Topbar({ title }: TopbarProps) {
           zIndex: 10,
         }}
       >
-        {/* page title */}
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-          {title}
-        </span>
+        {/* left cluster: hamburger (mobile only) + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            className="hamburger-btn"
+            onClick={toggleSidebar}
+            aria-label="Toggle navigation"
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '6px 8px',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              alignItems: 'center',
+            }}
+          >
+            <Menu size={16} />
+          </button>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {title}
+          </span>
+        </div>
 
         {/* right cluster */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

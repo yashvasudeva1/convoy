@@ -76,12 +76,13 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 16 }}>
+        <div className="split-panel-right" style={{ gridTemplateColumns: '1fr 220px', gap: 16 }}>
           {/* recent trips */}
           <div className="surface">
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
               <span className="section-title">Recent Trips</span>
             </div>
+            <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -105,6 +106,7 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* vehicle status panel */}

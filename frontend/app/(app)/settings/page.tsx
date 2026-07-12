@@ -61,7 +61,7 @@ export default function SettingsPage() {
     <>
       <Topbar title="Settings" />
       <div className="page-content">
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, alignItems: 'start' }}>
+        <div className="split-panel" style={{ gridTemplateColumns: '320px 1fr', gap: 16 }}>
           {/* general settings */}
           <div className="surface">
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
@@ -98,6 +98,7 @@ export default function SettingsPage() {
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
               <span className="section-title">Role-Based Access (RBAC)</span>
             </div>
+            <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -122,6 +123,7 @@ export default function SettingsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
             <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-muted)' }}>
               <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
