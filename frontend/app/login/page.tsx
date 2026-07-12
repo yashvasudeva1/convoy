@@ -3,18 +3,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Navigation, Truck, Users, Route, BarChart2 } from 'lucide-react';
 import { useUser } from '@/components/usercontext';
 import { api, ApiError } from '@/lib/api';
 import { LoginResponse } from '@/lib/types';
 
-const roles = ['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'];
-
 const DEMO_PASSWORD = 'password123';
 const DEMO_ACCOUNTS = [
-  { role: 'Fleet Manager', email: 'fleet.manager@transitops.dev' },
-  { role: 'Dispatcher', email: 'dispatcher@transitops.dev' },
-  { role: 'Safety Officer', email: 'safety.officer@transitops.dev' },
-  { role: 'Financial Analyst', email: 'financial.analyst@transitops.dev' },
+  { role: 'Fleet Manager', email: 'fleet.manager@transitops.dev', scope: 'Fleet · Maintenance', icon: Truck },
+  { role: 'Dispatcher', email: 'dispatcher@transitops.dev', scope: 'Dashboard · Trips', icon: Route },
+  { role: 'Safety Officer', email: 'safety.officer@transitops.dev', scope: 'Drivers · Compliance', icon: Users },
+  { role: 'Financial Analyst', email: 'financial.analyst@transitops.dev', scope: 'Fuel & Expenses · Reports', icon: BarChart2 },
 ];
 
 export default function LoginPage() {
@@ -55,96 +54,107 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        background: 'var(--bg-base)',
-      }}
-    >
-      {/* left panel — hidden on narrow screens via .login-branding media query */}
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-canvas)' }}>
+      {/* left panel — brand, hidden on narrow screens via .login-branding media query */}
       <div
         className="login-branding"
         style={{
-          width: 380,
-          minWidth: 380,
-          background: 'var(--bg-base)',
-          borderRight: '1px solid var(--border-muted)',
+          width: 420,
+          minWidth: 420,
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(160deg, #4c3fd6 0%, #5b4fe0 45%, #7b6ef2 100%)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: '48px 40px',
+          padding: '44px 40px',
+          color: '#fff',
         }}
       >
-        <div>
-          <div style={{ marginBottom: 48 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-              Convoy
+        {/* decorative route rings */}
+        <svg
+          width="440" height="440" viewBox="0 0 440 440"
+          style={{ position: 'absolute', top: -60, right: -140, opacity: 0.18, pointerEvents: 'none' }}
+        >
+          <circle cx="220" cy="220" r="219" stroke="#fff" strokeWidth="1" fill="none" />
+          <circle cx="220" cy="220" r="160" stroke="#fff" strokeWidth="1" fill="none" />
+          <circle cx="220" cy="220" r="100" stroke="#fff" strokeWidth="1" fill="none" />
+        </svg>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
+            <div
+              style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'rgba(255,255,255,0.16)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Navigation size={18} fill="#fff" strokeWidth={2} />
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Smart Transport Operations Platform
-            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Convoy</div>
           </div>
 
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ width: 40, height: 2, background: 'var(--border)', marginBottom: 24 }} />
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              One login, four roles:
-            </p>
-            <ul style={{ listStyle: 'none', marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {roles.map(r => (
-                <li key={r} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted)', display: 'inline-block' }} />
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h1 style={{ fontSize: 27, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.02em', marginBottom: 14 }}>
+            Run your fleet like a control tower, not a spreadsheet.
+          </h1>
+          <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.78)', lineHeight: 1.6, maxWidth: 320 }}>
+            Vehicles, drivers, dispatch, maintenance and cost — one system of record for every trip TransitOps runs.
+          </p>
 
-          <div style={{ marginTop: 48 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Access scope by role
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {[
-                { role: 'Fleet Manager', scope: 'Fleet, Maintenance' },
-                { role: 'Dispatcher', scope: 'Dashboard, Trips' },
-                { role: 'Safety Officer', scope: 'Drivers, Compliance' },
-                { role: 'Financial Analyst', scope: 'Fuel & Expenses, Analytics' },
-              ].map(item => (
-                <div key={item.role} style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{item.role}</span>
-                  <span style={{ color: 'var(--text-muted)' }}> — {item.scope}</span>
+          <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {DEMO_ACCOUNTS.map(({ role, scope, icon: Icon }) => (
+              <div
+                key={role}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderRadius: 12,
+                  padding: '10px 12px',
+                }}
+              >
+                <div
+                  style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    background: 'rgba(255,255,255,0.14)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Icon size={14} color="#fff" />
                 </div>
-              ))}
-            </div>
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>{role}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{scope}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          CONVOY © 2026 · RBAC Enabled
+        <div style={{ position: 'relative', fontSize: 10.5, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          Convoy © 2026 · RBAC Enabled
         </div>
       </div>
 
-      {/* right panel */}
+      {/* right panel — form */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--bg-surface)',
           padding: '24px 16px',
           overflowY: 'auto',
         }}
       >
         <div style={{ width: '100%', maxWidth: 360 }}>
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-              Sign in to Convoy
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>
+              Welcome back
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              Enter your credentials to continue
+            <p style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
+              Sign in to your TransitOps workspace
             </p>
           </div>
 
@@ -183,15 +193,15 @@ export default function LoginPage() {
               type="submit"
               className="btn-primary"
               disabled={loading}
-              style={{ width: '100%', padding: '10px 16px', fontSize: 14 }}
+              style={{ width: '100%', padding: '11px 16px', fontSize: 14, marginTop: 4 }}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
-          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border-muted)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Demo accounts (password: {DEMO_PASSWORD})
+          <div style={{ marginTop: 28, paddingTop: 22, borderTop: '1px solid var(--border-muted)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Demo accounts &middot; password: {DEMO_PASSWORD}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {DEMO_ACCOUNTS.map(acc => (
@@ -201,10 +211,10 @@ export default function LoginPage() {
                   onClick={() => quickLogin(acc.email)}
                   disabled={loading}
                   className="btn-ghost"
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '8px 12px', textAlign: 'left' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '9px 12px', textAlign: 'left', borderRadius: 10 }}
                 >
-                  <span>{acc.role}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{acc.email}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{acc.role}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}>{acc.email}</span>
                 </button>
               ))}
             </div>

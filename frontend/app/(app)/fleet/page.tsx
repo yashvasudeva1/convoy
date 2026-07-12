@@ -128,7 +128,7 @@ export default function FleetPage() {
 
   return (
     <>
-      <Topbar title="Fleet" />
+      <Topbar title="Fleet" subtitle="Vehicle registry and lifecycle status" />
       <div className="page-content">
         {/* header */}
         <div className="section-header">
@@ -166,9 +166,7 @@ export default function FleetPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Reg. No. (Unique)</th>
-                <th>Make</th>
-                <th>Model</th>
+                <th>Vehicle</th>
                 <th>Capacity</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -176,16 +174,22 @@ export default function FleetPage() {
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>Loading vehicles...</td></tr>
+                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>Loading vehicles...</td></tr>
               )}
               {isError && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--accent-red)', padding: 32 }}>Could not load vehicles.</td></tr>
+                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--status-red)', padding: 32 }}>Could not load vehicles.</td></tr>
               )}
               {!isLoading && !isError && filtered.map(v => (
                 <tr key={v.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>{v.registrationNumber}</td>
-                  <td style={{ fontWeight: 500 }}>{v.make}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{v.model}</td>
+                  <td>
+                    <div className="row-identity">
+                      <div className="avatar">{v.make.slice(0, 2).toUpperCase()}</div>
+                      <div>
+                        <div className="row-identity-name">{v.registrationNumber}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{v.make} {v.model}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td>{v.capacityKg} kg</td>
                   <td><StatusBadge label={VEHICLE_STATUS_TO_LABEL[v.status]} /></td>
                   <td style={{ textAlign: 'right' }}>
@@ -204,7 +208,7 @@ export default function FleetPage() {
               ))}
               {!isLoading && !isError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No vehicles found.</td>
+                  <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No vehicles found.</td>
                 </tr>
               )}
             </tbody>

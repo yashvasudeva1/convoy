@@ -102,7 +102,7 @@ export default function FuelPage() {
 
   return (
     <>
-      <Topbar title="Fuel & Expenses" />
+      <Topbar title="Fuel & Expenses" subtitle="Fuel logs, tolls and operational cost tracking" />
       <div className="page-content">
         {/* header actions */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
@@ -184,25 +184,23 @@ export default function FuelPage() {
 
         {/* total operational cost */}
         <div
+          className="surface"
           style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            padding: '16px 20px',
+            padding: '20px 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
               Total Operational Cost (Auto) = Fuel + Expenses
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
               Fuel: ₹{fmt(totalFuel)} + Expenses: ₹{fmt(totalExpense)}
             </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
             ₹{fmt(totalOpCost)}
           </div>
         </div>

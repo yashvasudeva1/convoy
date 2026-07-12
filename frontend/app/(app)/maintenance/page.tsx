@@ -75,12 +75,12 @@ export default function MaintenancePage() {
 
   return (
     <>
-      <Topbar title="Maintenance" />
+      <Topbar title="Maintenance" subtitle="Service records and vehicle shop status" />
       <div className="page-content">
         <div className="split-panel" style={{ gridTemplateColumns: '300px 1fr', gap: 16 }}>
           {/* log form */}
           <div className="surface">
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border-muted)' }}>
               <span className="section-title">Log Service Record</span>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} style={{ padding: 16 }}>
@@ -111,7 +111,7 @@ export default function MaintenancePage() {
             </form>
 
             {/* status flow */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-muted)' }}>
               <div className="section-title" style={{ marginBottom: 10 }}>Vehicle Status Flow</div>
               {statusFlow.map((s, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11 }}>
@@ -128,7 +128,7 @@ export default function MaintenancePage() {
 
           {/* service log table */}
           <div className="surface">
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border-muted)' }}>
               <span className="section-title">Service Log</span>
             </div>
             <div className="table-scroll">
@@ -166,7 +166,7 @@ export default function MaintenancePage() {
                           className="btn-ghost"
                           onClick={() => closeMutation.mutate(r.id)}
                           disabled={closeMutation.isPending}
-                          style={{ padding: '4px 10px', fontSize: 11, color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                          style={{ padding: '4px 10px', fontSize: 11, color: 'var(--status-green)', borderColor: 'var(--status-green-bg)' }}
                         >
                           <CheckCircle size={11} style={{ marginRight: 4, display: 'inline' }} /> Close
                         </button>

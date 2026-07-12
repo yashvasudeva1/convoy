@@ -22,14 +22,14 @@ const rbacMatrix = [
 function AccessCell({ value }: { value: string }) {
   if (value === 'full') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'rgba(63,185,80,0.15)', color: 'var(--accent-green)' }}>
-        <Check size={11} strokeWidth={2.5} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'var(--status-green-bg)', color: 'var(--status-green)' }}>
+        <Check size={12} strokeWidth={2.5} />
       </span>
     );
   }
   if (value === 'view') {
     return (
-      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '2px 6px', borderRadius: 3, letterSpacing: '0.04em' }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '3px 8px', borderRadius: 999, letterSpacing: '0.03em' }}>
         view
       </span>
     );
@@ -59,7 +59,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Topbar title="Settings" />
+      <Topbar title="Settings" subtitle="Workspace preferences and role permissions" />
       <div className="page-content">
         <div className="split-panel" style={{ gridTemplateColumns: '320px 1fr', gap: 16 }}>
           {/* general settings */}
@@ -127,10 +127,10 @@ export default function SettingsPage() {
             <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-muted)' }}>
               <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Check size={10} color="var(--accent-green)" /> Full access
+                  <Check size={10} color="var(--status-green)" /> Full access
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>view</span> Read-only
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>view</span> Read-only
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Minus size={10} /> No access

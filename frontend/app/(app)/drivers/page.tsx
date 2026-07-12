@@ -123,7 +123,7 @@ export default function DriversPage() {
 
   return (
     <>
-      <Topbar title="Drivers" />
+      <Topbar title="Drivers" subtitle="Driver profiles, license validity and safety scores" />
       <div className="page-content">
         {/* header */}
         <div className="section-header">
@@ -153,7 +153,6 @@ export default function DriversPage() {
             <thead>
               <tr>
                 <th>Driver</th>
-                <th>License No.</th>
                 <th>Expiry</th>
                 <th>Safety Score</th>
                 <th>Status</th>
@@ -162,17 +161,25 @@ export default function DriversPage() {
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>Loading drivers...</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>Loading drivers...</td></tr>
               )}
               {isError && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--accent-red)', padding: 32 }}>Could not load drivers.</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--status-red)', padding: 32 }}>Could not load drivers.</td></tr>
               )}
               {!isLoading && !isError && filtered.map(d => {
                 const safetyNum = d.safetyScore;
+                const initials = d.name.trim().split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
                 return (
                   <tr key={d.id}>
-                    <td style={{ fontWeight: 600 }}>{d.name}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{d.licenseNumber}</td>
+                    <td>
+                      <div className="row-identity">
+                        <div className="avatar">{initials}</div>
+                        <div>
+                          <div className="row-identity-name">{d.name}</div>
+                          <div className="row-identity-sub">{d.licenseNumber}</div>
+                        </div>
+                      </div>
+                    </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ color: d.isLicenseExpired ? 'var(--accent-red)' : 'var(--text-primary)' }}>
@@ -218,7 +225,7 @@ export default function DriversPage() {
               })}
               {!isLoading && !isError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No drivers found.</td>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No drivers found.</td>
                 </tr>
               )}
             </tbody>
