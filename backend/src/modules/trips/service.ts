@@ -1,4 +1,4 @@
-import { prisma } from "../../lib/prisma";
+import { prisma } from "../../config/db";
 import { AppError } from "../../middleware/errorHandler";
 import { CreateTripInput } from "./schemas";
 import { assertDriverAssignable, assertVehicleAssignable } from "./rules";
@@ -9,8 +9,8 @@ export async function createTrip(input: CreateTripInput) {
     prisma.driver.findUnique({ where: { id: input.driverId } }),
   ]);
 
-  if (!vehicle) throw new AppError("Vehicle not found", 404);
-  if (!driver) throw new AppError("Driver not found", 404);
+  if (!vehicle) throw new AppError(404, "Vehicle not found");
+  if (!driver) throw new AppError(404, "Driver not found");
 
   assertVehicleAssignable(vehicle, input.cargoWeightKg);
   assertDriverAssignable(driver);
@@ -29,17 +29,17 @@ export async function createTrip(input: CreateTripInput) {
 export async function dispatchTrip(tripId: string) {
   return prisma.$transaction(async (tx) => {
     const trip = await tx.trip.findUnique({ where: { id: tripId } });
-    if (!trip) throw new AppError("Trip not found", 404);
+    if (!trip) throw new AppError(404, "Trip not found");
     if (trip.status !== "PENDING") {
-      throw new AppError(`Cannot dispatch trip in status ${trip.status}`, 422);
+      throw new AppError(422, `Cannot dispatch trip in status ${trip.status}`);
     }
 
     const [vehicle, driver] = await Promise.all([
       tx.vehicle.findUnique({ where: { id: trip.vehicleId } }),
       tx.driver.findUnique({ where: { id: trip.driverId } }),
     ]);
-    if (!vehicle) throw new AppError("Vehicle not found", 404);
-    if (!driver) throw new AppError("Driver not found", 404);
+    if (!vehicle) throw new AppError(404, "Vehicle not found");
+    if (!driver) throw new AppError(404, "Driver not found");
 
     assertVehicleAssignable(vehicle, trip.cargoWeightKg);
     assertDriverAssignable(driver);
@@ -63,9 +63,9 @@ export async function dispatchTrip(tripId: string) {
 export async function completeTrip(tripId: string) {
   return prisma.$transaction(async (tx) => {
     const trip = await tx.trip.findUnique({ where: { id: tripId } });
-    if (!trip) throw new AppError("Trip not found", 404);
+    if (!trip) throw new AppError(404, "Trip not found");
     if (trip.status !== "DISPATCHED") {
-      throw new AppError(`Cannot complete trip in status ${trip.status}`, 422);
+      throw new AppError(422, `Cannot complete trip in status ${trip.status}`);
     }
 
     await tx.vehicle.update({
@@ -87,9 +87,9 @@ export async function completeTrip(tripId: string) {
 export async function cancelTrip(tripId: string) {
   return prisma.$transaction(async (tx) => {
     const trip = await tx.trip.findUnique({ where: { id: tripId } });
-    if (!trip) throw new AppError("Trip not found", 404);
+    if (!trip) throw new AppError(404, "Trip not found");
     if (trip.status !== "PENDING" && trip.status !== "DISPATCHED") {
-      throw new AppError(`Cannot cancel trip in status ${trip.status}`, 422);
+      throw new AppError(422, `Cannot cancel trip in status ${trip.status}`);
     }
 
     if (trip.status === "DISPATCHED") {

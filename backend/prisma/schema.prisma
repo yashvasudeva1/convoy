@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleName {
+  FLEET_MANAGER
+  DISPATCHER
+  SAFETY_OFFICER
+  FINANCIAL_ANALYST
+}
+
 enum VehicleStatus {
   AVAILABLE
   ON_TRIP
@@ -21,6 +28,11 @@ enum DriverStatus {
   SUSPENDED
 }
 
+enum MaintenanceStatus {
+  OPEN
+  CLOSED
+}
+
 enum TripStatus {
   PENDING
   DISPATCHED
@@ -28,27 +40,65 @@ enum TripStatus {
   CANCELLED
 }
 
-// Provisional stub — Member 1 owns the full Vehicle model (registration, CRUD, etc).
-// Only fields needed here for trip business rules.
-model Vehicle {
-  id           String        @id @default(cuid())
-  status       VehicleStatus @default(AVAILABLE)
-  capacityKg   Float
-  trips        Trip[]
-  fuelLogs     FuelLog[]
-  expenseLogs  ExpenseLog[]
+model Role {
+  id    String   @id @default(uuid())
+  name  RoleName @unique
+  users User[]
 }
 
-// Provisional stub — Member 1 owns the full Driver model (CRUD, safety score, etc).
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Vehicle {
+  id                 String            @id @default(uuid())
+  registrationNumber String            @unique
+  make               String
+  model              String
+  capacityKg         Float
+  status             VehicleStatus     @default(AVAILABLE)
+  maintenanceLogs    MaintenanceLog[]
+  trips              Trip[]
+  fuelLogs            FuelLog[]
+  expenseLogs         ExpenseLog[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
 model Driver {
-  id             String       @id @default(cuid())
-  status         DriverStatus @default(AVAILABLE)
+  id             String       @id @default(uuid())
+  name           String
+  licenseNumber  String       @unique
   licenseExpiry  DateTime
+  safetyScore    Int          @default(100)
+  status         DriverStatus @default(AVAILABLE)
   trips          Trip[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model MaintenanceLog {
+  id          String            @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle           @relation(fields: [vehicleId], references: [id])
+  reason      String
+  notes       String?
+  status      MaintenanceStatus @default(OPEN)
+  openedAt    DateTime          @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 model Trip {
-  id            String     @id @default(cuid())
+  id            String     @id @default(uuid())
   vehicleId     String
   driverId      String
   vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
@@ -67,7 +117,7 @@ model Trip {
 }
 
 model FuelLog {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   tripId     String?
   vehicleId  String
   trip       Trip?    @relation(fields: [tripId], references: [id])
@@ -79,7 +129,7 @@ model FuelLog {
 }
 
 model ExpenseLog {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   tripId      String?
   vehicleId   String
   trip        Trip?    @relation(fields: [tripId], references: [id])

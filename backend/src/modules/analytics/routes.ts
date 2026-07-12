@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { asyncHandler } from "../../middleware/errorHandler";
+import { asyncHandler } from "../../utils/asyncHandler";
 import { getAnalytics, getDashboard } from "./service";
 
 export const dashboardRouter = Router();

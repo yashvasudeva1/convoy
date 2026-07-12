@@ -1,4 +1,4 @@
-import { prisma } from "../../lib/prisma";
+import { prisma } from "../../config/db";
 import { AppError } from "../../middleware/errorHandler";
 import { CreateExpenseLogInput } from "./schemas";
 
@@ -6,11 +6,11 @@ export async function createExpenseLog(input: CreateExpenseLogInput) {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: input.vehicleId },
   });
-  if (!vehicle) throw new AppError("Vehicle not found", 404);
+  if (!vehicle) throw new AppError(404, "Vehicle not found");
 
   if (input.tripId) {
     const trip = await prisma.trip.findUnique({ where: { id: input.tripId } });
-    if (!trip) throw new AppError("Trip not found", 404);
+    if (!trip) throw new AppError(404, "Trip not found");
   }
 
   return prisma.expenseLog.create({

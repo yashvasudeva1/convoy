@@ -2,33 +2,27 @@ import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 export class AppError extends Error {
-  status: number;
-  constructor(message: string, status = 400) {
+  statusCode: number;
+
+  constructor(statusCode: number, message: string) {
     super(message);
-    this.status = status;
+    this.statusCode = statusCode;
   }
 }
 
-export function errorHandler(
-  err: unknown,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
-    return res.status(err.status).json({ error: err.message });
+    return res.status(err.statusCode).json({ error: err.message });
   }
   if (err instanceof ZodError) {
     return res.status(400).json({ error: "Validation failed", details: err.issues });
   }
+
   console.error(err);
   return res.status(500).json({ error: "Internal server error" });
 }
 
-export function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
-) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    fn(req, res, next).catch(next);
-  };
+export function notFoundHandler(_req: Request, res: Response) {
+  res.status(404).json({ error: "Route not found" });
 }
