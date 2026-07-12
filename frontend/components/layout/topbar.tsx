@@ -40,9 +40,10 @@ const typeIcon: Record<SearchResult['type'], React.ReactNode> = {
 
 interface TopbarProps {
   title: string;
+  subtitle?: string;
 }
 
-export default function Topbar({ title }: TopbarProps) {
+export default function Topbar({ title, subtitle }: TopbarProps) {
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const { user, update, logout } = useUser();
@@ -122,43 +123,52 @@ export default function Topbar({ title }: TopbarProps) {
 
   const isDark = theme === 'dark';
 
+  const iconBtnStyle: React.CSSProperties = {
+    background: 'transparent',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 10,
+    padding: '7px 9px',
+    cursor: 'pointer',
+    color: 'var(--text-secondary)',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+  };
+
   return (
     <>
       <header
         style={{
-          height: 52,
-          background: 'var(--bg-base)',
-          borderBottom: '1px solid var(--border-muted)',
+          height: 64,
+          background: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 20px',
+          padding: '0 24px',
           flexShrink: 0,
           position: 'relative',
           zIndex: 10,
         }}
       >
         {/* left cluster: hamburger (mobile only) + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button
             className="hamburger-btn"
             onClick={toggleSidebar}
             aria-label="Toggle navigation"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: '6px 8px',
-              cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              alignItems: 'center',
-            }}
+            style={{ ...iconBtnStyle, alignItems: 'center' }}
           >
             <Menu size={16} />
           </button>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-            {title}
-          </span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              {title}
+            </div>
+            {subtitle && (
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{subtitle}</div>
+            )}
+          </div>
         </div>
 
         {/* right cluster */}
@@ -171,17 +181,17 @@ export default function Topbar({ title }: TopbarProps) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                padding: '6px 12px',
-                width: 220,
+                background: 'var(--bg-surface-2)',
+                border: '1px solid var(--border-strong)',
+                borderRadius: 10,
+                padding: '7px 12px',
+                width: 240,
               }}
             >
               <Search size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search vehicles, drivers, trips..."
                 value={searchQuery}
                 onChange={e => handleSearch(e.target.value)}
                 onFocus={() => { if (searchResults.length > 0) setSearchOpen(true); }}
@@ -189,7 +199,7 @@ export default function Topbar({ title }: TopbarProps) {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  fontSize: 12,
+                  fontSize: 12.5,
                   color: 'var(--text-primary)',
                   width: '100%',
                 }}
@@ -209,13 +219,13 @@ export default function Topbar({ title }: TopbarProps) {
               <div
                 style={{
                   position: 'absolute',
-                  top: 'calc(100% + 6px)',
+                  top: 'calc(100% + 8px)',
                   right: 0,
-                  width: 300,
-                  background: 'var(--bg-surface)',
+                  width: 310,
+                  background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  borderRadius: 14,
+                  boxShadow: 'var(--shadow-lg)',
                   overflow: 'hidden',
                   zIndex: 200,
                 }}
@@ -229,7 +239,7 @@ export default function Topbar({ title }: TopbarProps) {
                       background: 'transparent',
                       border: 'none',
                       borderBottom: i < searchResults.length - 1 ? '1px solid var(--border-muted)' : 'none',
-                      padding: '9px 14px',
+                      padding: '10px 14px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
@@ -239,23 +249,23 @@ export default function Topbar({ title }: TopbarProps) {
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <span style={{ color: 'var(--text-muted)', display: 'flex', flexShrink: 0 }}>
+                    <span style={{ color: 'var(--accent)', display: 'flex', flexShrink: 0 }}>
                       {typeIcon[r.type]}
                     </span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{r.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.sub}</div>
                     </div>
                     <span
                       style={{
                         marginLeft: 'auto',
                         fontSize: 10,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         color: 'var(--text-muted)',
-                        background: 'var(--bg-elevated)',
-                        padding: '2px 6px',
-                        borderRadius: 3,
-                        letterSpacing: '0.04em',
+                        background: 'var(--bg-surface-2)',
+                        padding: '2px 7px',
+                        borderRadius: 999,
+                        letterSpacing: '0.03em',
                         textTransform: 'capitalize',
                       }}
                     >
@@ -271,19 +281,9 @@ export default function Topbar({ title }: TopbarProps) {
           <button
             onClick={toggle}
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: '6px 8px',
-              cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'background 0.15s, color 0.15s',
-            }}
+            style={iconBtnStyle}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--bg-elevated)';
+              e.currentTarget.style.background = 'var(--bg-hover)';
               e.currentTarget.style.color = 'var(--text-primary)';
             }}
             onMouseLeave={e => {
@@ -298,30 +298,20 @@ export default function Topbar({ title }: TopbarProps) {
           <div style={{ position: 'relative' }} ref={notifRef}>
             <button
               onClick={() => { setNotifOpen(p => !p); setProfileOpen(false); setSearchOpen(false); }}
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                padding: '6px 8px',
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                position: 'relative',
-              }}
+              style={{ ...iconBtnStyle, position: 'relative' }}
             >
               <Bell size={14} />
               {unreadCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
-                    top: 4,
-                    right: 4,
+                    top: 5,
+                    right: 5,
                     width: 6,
                     height: 6,
-                    background: '#f85149',
+                    background: 'var(--status-red)',
                     borderRadius: '50%',
-                    border: '1.5px solid var(--bg-base)',
+                    border: '1.5px solid var(--bg-surface)',
                   }}
                 />
               )}
@@ -335,10 +325,10 @@ export default function Topbar({ title }: TopbarProps) {
                   top: 'calc(100% + 8px)',
                   right: 0,
                   width: 340,
-                  background: 'var(--bg-surface)',
+                  background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  borderRadius: 14,
+                  boxShadow: 'var(--shadow-lg)',
                   zIndex: 200,
                   overflow: 'hidden',
                 }}
@@ -348,18 +338,18 @@ export default function Topbar({ title }: TopbarProps) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '12px 14px',
+                    padding: '13px 14px',
                     borderBottom: '1px solid var(--border-muted)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
                       Notifications
                     </span>
                     {unreadCount > 0 && (
                       <span
                         style={{
-                          background: '#f85149',
+                          background: 'var(--status-red)',
                           color: '#fff',
                           fontSize: 10,
                           fontWeight: 700,
@@ -378,7 +368,8 @@ export default function Topbar({ title }: TopbarProps) {
                         background: 'transparent',
                         border: 'none',
                         fontSize: 11,
-                        color: 'var(--accent-blue)',
+                        fontWeight: 600,
+                        color: 'var(--accent)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -401,9 +392,9 @@ export default function Topbar({ title }: TopbarProps) {
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: 10,
-                        padding: '10px 14px',
+                        padding: '11px 14px',
                         borderBottom: '1px solid var(--border-muted)',
-                        background: n.read ? 'transparent' : 'rgba(56,139,253,0.05)',
+                        background: n.read ? 'transparent' : 'var(--accent-soft)',
                       }}
                     >
                       <span
@@ -411,7 +402,7 @@ export default function Topbar({ title }: TopbarProps) {
                           width: 6,
                           height: 6,
                           borderRadius: '50%',
-                          background: n.read ? 'transparent' : 'var(--accent-blue)',
+                          background: n.read ? 'transparent' : 'var(--accent)',
                           marginTop: 6,
                           flexShrink: 0,
                         }}
@@ -455,32 +446,15 @@ export default function Topbar({ title }: TopbarProps) {
                 alignItems: 'center',
                 gap: 8,
                 background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                padding: '5px 10px',
+                border: '1px solid var(--border-strong)',
+                borderRadius: 10,
+                padding: '5px 10px 5px 5px',
                 cursor: 'pointer',
               }}
             >
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  flexShrink: 0,
-                }}
-              >
-                {user.initials}
-              </div>
+              <div className="avatar avatar-sm">{user.initials}</div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                   {user.name}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
@@ -497,30 +471,29 @@ export default function Topbar({ title }: TopbarProps) {
                   top: 'calc(100% + 8px)',
                   right: 0,
                   width: 220,
-                  background: 'var(--bg-surface)',
+                  background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  borderRadius: 14,
+                  boxShadow: 'var(--shadow-lg)',
                   zIndex: 200,
                   overflow: 'hidden',
                 }}
               >
                 {/* user header */}
-                <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--border-muted)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</div>
+                <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid var(--border-muted)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{user.email}</div>
                   <div
                     style={{
                       display: 'inline-block',
                       fontSize: 10,
-                      fontWeight: 600,
-                      color: 'var(--text-secondary)',
-                      background: 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 3,
-                      padding: '2px 6px',
-                      marginTop: 6,
-                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                      background: 'var(--accent-soft)',
+                      borderRadius: 999,
+                      padding: '3px 8px',
+                      marginTop: 8,
+                      letterSpacing: '0.02em',
                     }}
                   >
                     {user.role}
@@ -535,7 +508,7 @@ export default function Topbar({ title }: TopbarProps) {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      padding: '8px 14px',
+                      padding: '9px 14px',
                       textAlign: 'left',
                       fontSize: 13,
                       color: 'var(--text-primary)',
@@ -554,14 +527,14 @@ export default function Topbar({ title }: TopbarProps) {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      padding: '8px 14px',
+                      padding: '9px 14px',
                       textAlign: 'left',
                       fontSize: 13,
-                      color: 'var(--accent-red)',
+                      color: 'var(--status-red)',
                       cursor: 'pointer',
                       display: 'block',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--status-red-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                     Sign Out

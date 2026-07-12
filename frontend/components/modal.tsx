@@ -36,15 +36,17 @@ export default function Modal({ open, title, onClose, children, footer, width = 
           <button
             onClick={onClose}
             style={{
-              background: 'transparent',
-              border: 'none',
+              background: 'var(--bg-surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
               cursor: 'pointer',
-              color: '#8b949e',
+              color: 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
+              padding: 6,
             }}
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
         <div className="modal-body">{children}</div>

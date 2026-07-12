@@ -98,10 +98,10 @@ export default function TripsPage() {
 
   return (
     <>
-      <Topbar title="Trips" />
+      <Topbar title="Trips" subtitle="Dispatch, track and close out fleet trips" />
       <div className="page-content">
         {/* lifecycle header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
           <span className="section-title">Trip Lifecycle</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 12 }}>
             {['Draft', 'Dispatched', 'Completed', 'Cancelled'].map((s, i, arr) => (
@@ -211,7 +211,7 @@ export default function TripsPage() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-blue)' }}>{t.id.slice(0, 8)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>#{t.id.slice(0, 8)}</span>
                           <StatusBadge label={TRIP_STATUS_TO_LABEL[t.status]} />
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2 }}>
@@ -235,7 +235,7 @@ export default function TripsPage() {
                                 className="btn-ghost"
                                 onClick={() => completeMutation.mutate(t.id)}
                                 disabled={completeMutation.isPending}
-                                style={{ padding: '4px 10px', fontSize: 11, color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                                style={{ padding: '4px 10px', fontSize: 11, color: 'var(--status-green)', borderColor: 'var(--status-green-bg)' }}
                               >
                                 <CheckCircle size={11} style={{ marginRight: 4, display: 'inline' }} />
                                 Complete

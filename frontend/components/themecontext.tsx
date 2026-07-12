@@ -10,10 +10,10 @@ interface ThemeCtx {
   toggle: () => void;
 }
 
-const ThemeContext = createContext<ThemeCtx>({ theme: 'dark', toggle: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ theme: 'light', toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
 
   // read saved pref once on mount
   useEffect(() => {
@@ -22,7 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setTheme(stored);
     }
     // always stamp the attribute so CSS vars activate
-    document.documentElement.setAttribute('data-theme', stored ?? 'dark');
+    document.documentElement.setAttribute('data-theme', stored ?? 'light');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
