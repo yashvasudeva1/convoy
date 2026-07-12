@@ -5,7 +5,9 @@ import { AppError } from "../../middleware/errorHandler";
 interface DriverInput {
   name: string;
   licenseNumber: string;
+  licenseCategory?: string;
   licenseExpiry: Date;
+  contactNumber?: string;
   safetyScore?: number;
   status?: DriverStatus;
 }

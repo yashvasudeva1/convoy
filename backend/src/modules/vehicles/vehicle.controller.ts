@@ -15,7 +15,10 @@ export async function listVehiclesHandler(req: Request, res: Response) {
     status = parsed.data;
   }
 
-  const vehicles = await vehicleService.listVehicles(status);
+  const type = typeof req.query.type === "string" ? req.query.type : undefined;
+  const region = typeof req.query.region === "string" ? req.query.region : undefined;
+
+  const vehicles = await vehicleService.listVehicles(status, type, region);
   res.json(vehicles);
 }
 

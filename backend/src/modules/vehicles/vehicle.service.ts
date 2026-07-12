@@ -6,13 +6,21 @@ interface VehicleInput {
   registrationNumber: string;
   make: string;
   model: string;
+  type?: string;
   capacityKg: number;
+  odometerKm?: number;
+  acquisitionCost?: number;
+  region?: string;
   status?: VehicleStatus;
 }
 
-export function listVehicles(status?: VehicleStatus) {
+export function listVehicles(status?: VehicleStatus, type?: string, region?: string) {
   return prisma.vehicle.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      status: status ?? undefined,
+      type: type ?? undefined,
+      region: region ?? undefined,
+    },
     orderBy: { createdAt: "desc" },
   });
 }

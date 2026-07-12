@@ -1,6 +1,21 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/db";
 
-export async function getDashboard() {
+export interface FleetFilters {
+  type?: string;
+  region?: string;
+}
+
+function vehicleWhere(filters: FleetFilters): Prisma.VehicleWhereInput {
+  return {
+    type: filters.type ?? undefined,
+    region: filters.region ?? undefined,
+  };
+}
+
+export async function getDashboard(filters: FleetFilters = {}) {
+  const where = vehicleWhere(filters);
+
   const [
     totalVehicles,
     availableVehicles,
@@ -10,10 +25,10 @@ export async function getDashboard() {
     pendingTrips,
     driversOnDuty,
   ] = await Promise.all([
-    prisma.vehicle.count(),
-    prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
-    prisma.vehicle.count({ where: { status: "ON_TRIP" } }),
-    prisma.vehicle.count({ where: { status: "IN_SHOP" } }),
+    prisma.vehicle.count({ where }),
+    prisma.vehicle.count({ where: { ...where, status: "AVAILABLE" } }),
+    prisma.vehicle.count({ where: { ...where, status: "ON_TRIP" } }),
+    prisma.vehicle.count({ where: { ...where, status: "IN_SHOP" } }),
     prisma.trip.count({ where: { status: "DISPATCHED" } }),
     prisma.trip.count({ where: { status: "PENDING" } }),
     prisma.driver.count({ where: { status: "ON_TRIP" } }),
@@ -30,11 +45,12 @@ export async function getDashboard() {
   };
 }
 
-// Fleet utilization: share of the fleet currently on a trip.
-export async function getFleetUtilization() {
+// Fleet utilization: share of the (optionally filtered) fleet currently on a trip.
+export async function getFleetUtilization(filters: FleetFilters = {}) {
+  const where = vehicleWhere(filters);
   const [total, onTrip] = await Promise.all([
-    prisma.vehicle.count(),
-    prisma.vehicle.count({ where: { status: "ON_TRIP" } }),
+    prisma.vehicle.count({ where }),
+    prisma.vehicle.count({ where: { ...where, status: "ON_TRIP" } }),
   ]);
   return total === 0 ? 0 : (onTrip / total) * 100;
 }
@@ -64,41 +80,59 @@ export async function getFuelEfficiency() {
   return { fleetKmPerLiter, perVehicle };
 }
 
+// Operational Cost = Fuel + Maintenance, per the spec formula. Other expenses (tolls, etc.)
+// are tracked separately and surfaced but not folded into this headline total.
 export async function getOperationalCost() {
-  const [fuelAgg, expenseAgg] = await Promise.all([
+  const [fuelAgg, maintenanceAgg, expenseAgg] = await Promise.all([
     prisma.fuelLog.aggregate({ _sum: { cost: true } }),
+    prisma.maintenanceLog.aggregate({ _sum: { cost: true } }),
     prisma.expenseLog.aggregate({ _sum: { amount: true } }),
   ]);
   const fuelCost = fuelAgg._sum.cost ?? 0;
-  const expenseCost = expenseAgg._sum.amount ?? 0;
-  return { fuelCost, expenseCost, totalOperationalCost: fuelCost + expenseCost };
+  const maintenanceCost = maintenanceAgg._sum.cost ?? 0;
+  const otherExpenses = expenseAgg._sum.amount ?? 0;
+  return {
+    fuelCost,
+    maintenanceCost,
+    otherExpenses,
+    totalOperationalCost: fuelCost + maintenanceCost,
+  };
 }
 
-// ROI proxy: completed trips per unit of operational cost incurred by the vehicle.
-// No revenue/fare model exists in the schema yet, so this is a cost-efficiency proxy, not true ROI.
+// Vehicle ROI = (Revenue - (Maintenance + Fuel)) / Acquisition Cost, per vehicle.
 export async function getVehicleROI() {
   const vehicles = await prisma.vehicle.findMany({
     include: {
       trips: { where: { status: "COMPLETED" } },
       fuelLogs: true,
-      expenseLogs: true,
+      maintenanceLogs: true,
     },
   });
 
   return vehicles.map((v) => {
-    const completedTrips = v.trips.length;
-    const cost =
-      v.fuelLogs.reduce((s, f) => s + f.cost, 0) +
-      v.expenseLogs.reduce((s, e) => s + e.amount, 0);
-    const tripsPerCostUnit = cost > 0 ? completedTrips / cost : 0;
-    return { vehicleId: v.id, completedTrips, cost, tripsPerCostUnit };
+    const revenue = v.trips.reduce((s, t) => s + t.revenue, 0);
+    const fuelCost = v.fuelLogs.reduce((s, f) => s + f.cost, 0);
+    const maintenanceCost = v.maintenanceLogs.reduce((s, m) => s + m.cost, 0);
+    const roi =
+      v.acquisitionCost > 0
+        ? (revenue - (maintenanceCost + fuelCost)) / v.acquisitionCost
+        : null;
+    return {
+      vehicleId: v.id,
+      revenue,
+      fuelCost,
+      maintenanceCost,
+      acquisitionCost: v.acquisitionCost,
+      completedTrips: v.trips.length,
+      roi,
+    };
   });
 }
 
-export async function getAnalytics() {
+export async function getAnalytics(filters: FleetFilters = {}) {
   const [utilization, fuelEfficiency, operationalCost, vehicleROI] =
     await Promise.all([
-      getFleetUtilization(),
+      getFleetUtilization(filters),
       getFuelEfficiency(),
       getOperationalCost(),
       getVehicleROI(),

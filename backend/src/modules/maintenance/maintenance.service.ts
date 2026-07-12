@@ -24,7 +24,7 @@ export async function getMaintenanceLog(id: string) {
   return log;
 }
 
-export async function createMaintenanceLog(input: { vehicleId: string; reason: string; notes?: string }) {
+export async function createMaintenanceLog(input: { vehicleId: string; reason: string; notes?: string; cost?: number }) {
   const vehicle = await prisma.vehicle.findUnique({ where: { id: input.vehicleId } });
   if (!vehicle) {
     throw new AppError(404, "Vehicle not found");
@@ -46,6 +46,7 @@ export async function createMaintenanceLog(input: { vehicleId: string; reason: s
         vehicleId: input.vehicleId,
         reason: input.reason,
         notes: input.notes,
+        cost: input.cost,
       },
     });
 
@@ -58,7 +59,7 @@ export async function createMaintenanceLog(input: { vehicleId: string; reason: s
   });
 }
 
-export async function closeMaintenanceLog(id: string, notes?: string) {
+export async function closeMaintenanceLog(id: string, notes?: string, cost?: number) {
   const log = await prisma.maintenanceLog.findUnique({ where: { id } });
   if (!log) {
     throw new AppError(404, "Maintenance record not found");
@@ -74,6 +75,7 @@ export async function closeMaintenanceLog(id: string, notes?: string) {
         status: "CLOSED",
         closedAt: new Date(),
         notes: notes ?? log.notes,
+        cost: cost ?? log.cost,
       },
     });
 

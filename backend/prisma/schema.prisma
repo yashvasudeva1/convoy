@@ -62,7 +62,11 @@ model Vehicle {
   registrationNumber String            @unique
   make               String
   model              String
+  type               String            @default("Van")
   capacityKg         Float
+  odometerKm         Float             @default(0)
+  acquisitionCost    Float             @default(0)
+  region             String?
   status             VehicleStatus     @default(AVAILABLE)
   maintenanceLogs    MaintenanceLog[]
   trips              Trip[]
@@ -76,7 +80,9 @@ model Driver {
   id             String       @id @default(uuid())
   name           String
   licenseNumber  String       @unique
+  licenseCategory String      @default("LMV")
   licenseExpiry  DateTime
+  contactNumber  String       @default("")
   safetyScore    Int          @default(100)
   status         DriverStatus @default(AVAILABLE)
   trips          Trip[]
@@ -90,6 +96,7 @@ model MaintenanceLog {
   vehicle     Vehicle           @relation(fields: [vehicleId], references: [id])
   reason      String
   notes       String?
+  cost        Float             @default(0)
   status      MaintenanceStatus @default(OPEN)
   openedAt    DateTime          @default(now())
   closedAt    DateTime?
@@ -98,19 +105,23 @@ model MaintenanceLog {
 }
 
 model Trip {
-  id            String     @id @default(uuid())
-  vehicleId     String
-  driverId      String
-  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
-  driver        Driver     @relation(fields: [driverId], references: [id])
-  origin        String
-  destination   String
-  cargoWeightKg Float
-  status        TripStatus @default(PENDING)
-  createdAt     DateTime   @default(now())
-  dispatchedAt  DateTime?
-  completedAt   DateTime?
-  cancelledAt   DateTime?
+  id                  String     @id @default(uuid())
+  vehicleId           String
+  driverId            String
+  vehicle             Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver              Driver     @relation(fields: [driverId], references: [id])
+  origin              String
+  destination         String
+  cargoWeightKg       Float
+  plannedDistanceKm   Float      @default(0)
+  finalOdometerKm     Float?
+  fuelConsumedLiters  Float?
+  revenue             Float      @default(0)
+  status              TripStatus @default(PENDING)
+  createdAt           DateTime   @default(now())
+  dispatchedAt        DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
 
   fuelLogs      FuelLog[]
   expenseLogs   ExpenseLog[]
