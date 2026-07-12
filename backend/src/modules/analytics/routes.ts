@@ -12,7 +12,7 @@ analyticsRouter.use(authenticate);
 
 dashboardRouter.get(
   "/",
-  requireRole("FLEET_MANAGER", "DISPATCHER", "FINANCIAL_ANALYST"),
+  requireRole("FLEET_MANAGER", "DISPATCHER", "FINANCIAL_ANALYST", "SAFETY_OFFICER"),
   asyncHandler(async (_req, res) => {
     res.json(await getDashboard());
   })

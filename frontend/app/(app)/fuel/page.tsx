@@ -2,87 +2,101 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Topbar from '@/components/layout/topbar';
 import Modal from '@/components/modal';
 import { useForm } from 'react-hook-form';
 import { useUser } from '@/components/usercontext';
 import AccessDenied from '@/components/accessdenied';
 import { Plus } from 'lucide-react';
-
-interface FuelLog {
-  id: number;
-  vehicle: string;
-  date: string;
-  liters: number;
-  fuelCost: number;
-}
-
-interface Expense {
-  id: number;
-  trip: string;
-  vehicle: string;
-  toll: number;
-  other: number;
-  maintLinked: number;
-  total: number;
-}
-
-const initFuel: FuelLog[] = [
-  { id: 1, vehicle: 'VAN-05',   date: '05 Jul 2026', liters: 42,  fuelCost: 3150 },
-  { id: 2, vehicle: 'TRUCK-11', date: '06 Jul 2026', liters: 110, fuelCost: 8400 },
-  { id: 3, vehicle: 'MINI-08',  date: '06 Jul 2026', liters: 28,  fuelCost: 2050 },
-  { id: 4, vehicle: 'TRUCK-04', date: '07 Jul 2026', liters: 90,  fuelCost: 6900 },
-];
-
-const initExpenses: Expense[] = [
-  { id: 1, trip: 'TR001', vehicle: 'VAN-05',   toll: 120,  other: 0,   maintLinked: 0,      total: 120 },
-  { id: 2, trip: 'TR002', vehicle: 'TRK-12',   toll: 340,  other: 150, maintLinked: 18000, total: 18490 },
-  { id: 3, trip: 'TR003', vehicle: 'MINI-08',  toll: 80,   other: 0,   maintLinked: 0,      total: 80 },
-];
-
-const vehicles = ['VAN-05', 'TRUCK-11', 'TRUCK-04', 'MINI-08', 'VAN-09'];
+import { api, ApiError } from '@/lib/api';
+import { ApiExpenseLog, ApiFuelLog, ApiTrip, ApiVehicle } from '@/lib/types';
 
 interface FuelFormData {
-  vehicle: string;
-  date: string;
+  vehicleId: string;
+  tripId?: string;
   liters: number;
-  fuelCost: number;
+  cost: number;
 }
 interface ExpenseFormData {
-  trip: string;
-  vehicle: string;
-  toll: number;
-  other: number;
+  vehicleId: string;
+  tripId?: string;
+  category: string;
+  amount: number;
+  description?: string;
 }
 
 export default function FuelPage() {
   const { user } = useUser();
-  if (user?.role !== 'Financial Analyst') return <AccessDenied />;
+  const queryClient = useQueryClient();
 
-  const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(initFuel);
-  const [expenses, setExpenses] = useState<Expense[]>(initExpenses);
   const [fuelModal, setFuelModal] = useState(false);
   const [expModal, setExpModal] = useState(false);
+  const [fuelError, setFuelError] = useState('');
+  const [expError, setExpError] = useState('');
 
-  const fuelForm = useForm<FuelFormData>({ defaultValues: { vehicle: 'VAN-05' } });
-  const expForm  = useForm<ExpenseFormData>({ defaultValues: { vehicle: 'VAN-05' } });
+  const fuelForm = useForm<FuelFormData>();
+  const expForm = useForm<ExpenseFormData>({ defaultValues: { category: 'Toll' } });
+
+  const { data: fuelLogs = [], isLoading: fuelLoading } = useQuery({
+    queryKey: ['fuel'],
+    queryFn: () => api.get<ApiFuelLog[]>('/fuel'),
+  });
+
+  const { data: expenses = [], isLoading: expLoading } = useQuery({
+    queryKey: ['expense'],
+    queryFn: () => api.get<ApiExpenseLog[]>('/expense'),
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.get<ApiVehicle[]>('/vehicles'),
+  });
+
+  const { data: trips = [] } = useQuery({
+    queryKey: ['trips'],
+    queryFn: () => api.get<ApiTrip[]>('/trips'),
+  });
+
+  const vehicleById = new Map(vehicles.map(v => [v.id, v]));
+
+  const fuelMutation = useMutation({
+    mutationFn: (payload: FuelFormData) => api.post<ApiFuelLog>('/fuel', { ...payload, tripId: payload.tripId || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fuel'] });
+      setFuelModal(false);
+      fuelForm.reset();
+      setFuelError('');
+    },
+    onError: (err: unknown) => setFuelError(err instanceof ApiError ? err.message : 'Something went wrong.'),
+  });
+
+  const expenseMutation = useMutation({
+    mutationFn: (payload: ExpenseFormData) => api.post<ApiExpenseLog>('/expense', { ...payload, tripId: payload.tripId || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expense'] });
+      setExpModal(false);
+      expForm.reset();
+      setExpError('');
+    },
+    onError: (err: unknown) => setExpError(err instanceof ApiError ? err.message : 'Something went wrong.'),
+  });
+
+  if (user?.role !== 'Financial Analyst') return <AccessDenied />;
 
   const onFuelSubmit = (data: FuelFormData) => {
-    setFuelLogs(prev => [{ ...data, id: Date.now(), liters: Number(data.liters), fuelCost: Number(data.fuelCost) }, ...prev]);
-    setFuelModal(false);
-    fuelForm.reset();
+    setFuelError('');
+    fuelMutation.mutate({ ...data, liters: Number(data.liters), cost: Number(data.cost) });
   };
 
   const onExpSubmit = (data: ExpenseFormData) => {
-    const total = Number(data.toll) + Number(data.other);
-    setExpenses(prev => [{ ...data, id: Date.now(), toll: Number(data.toll), other: Number(data.other), maintLinked: 0, total }, ...prev]);
-    setExpModal(false);
-    expForm.reset();
+    setExpError('');
+    expenseMutation.mutate({ ...data, amount: Number(data.amount) });
   };
 
-  const totalFuel    = fuelLogs.reduce((s, f) => s + f.fuelCost, 0);
-  const totalMaint   = 26700; // from maintenance data
-  const totalOpCost  = totalFuel + totalMaint;
+  const totalFuel = fuelLogs.reduce((s, f) => s + f.cost, 0);
+  const totalExpense = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalOpCost = totalFuel + totalExpense;
 
   const fmt = (n: number) => n.toLocaleString('en-IN');
 
@@ -115,14 +129,20 @@ export default function FuelPage() {
               </tr>
             </thead>
             <tbody>
-              {fuelLogs.map(f => (
+              {fuelLoading && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>Loading...</td></tr>}
+              {!fuelLoading && fuelLogs.map(f => (
                 <tr key={f.id}>
-                  <td style={{ fontWeight: 600 }}>{f.vehicle}</td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{f.date}</td>
+                  <td style={{ fontWeight: 600 }}>{vehicleById.get(f.vehicleId)?.registrationNumber ?? '—'}</td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
+                    {new Date(f.loggedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </td>
                   <td>{f.liters} L</td>
-                  <td>₹{fmt(f.fuelCost)}</td>
+                  <td>₹{fmt(f.cost)}</td>
                 </tr>
               ))}
+              {!fuelLoading && fuelLogs.length === 0 && (
+                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No fuel logs yet.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -130,32 +150,30 @@ export default function FuelPage() {
         {/* other expenses */}
         <div className="surface" style={{ marginBottom: 16 }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
-            <span className="section-title">Other Expenses (Toll / Misc)</span>
+            <span className="section-title">Other Expenses</span>
           </div>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Trip</th>
                 <th>Vehicle</th>
-                <th>Toll</th>
-                <th>Other</th>
-                <th>Maint. (Linked)</th>
-                <th>Total</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {expenses.map(e => (
+              {expLoading && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>Loading...</td></tr>}
+              {!expLoading && expenses.map(e => (
                 <tr key={e.id}>
-                  <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{e.trip}</td>
-                  <td>{e.vehicle}</td>
-                  <td>₹{fmt(e.toll)}</td>
-                  <td>₹{fmt(e.other)}</td>
-                  <td style={{ color: e.maintLinked > 0 ? 'var(--accent-red)' : 'var(--text-muted)' }}>
-                    {e.maintLinked > 0 ? `₹${fmt(e.maintLinked)}` : '—'}
-                  </td>
-                  <td style={{ fontWeight: 600 }}>₹{fmt(e.total)}</td>
+                  <td style={{ fontWeight: 600 }}>{vehicleById.get(e.vehicleId)?.registrationNumber ?? '—'}</td>
+                  <td>{e.category}</td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{e.description ?? '—'}</td>
+                  <td style={{ fontWeight: 600 }}>₹{fmt(e.amount)}</td>
                 </tr>
               ))}
+              {!expLoading && expenses.length === 0 && (
+                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No expenses yet.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -174,10 +192,10 @@ export default function FuelPage() {
         >
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-              Total Operational Cost (Auto) = Fuel + Maintenance
+              Total Operational Cost (Auto) = Fuel + Expenses
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              Fuel: ₹{fmt(totalFuel)} + Maintenance: ₹{fmt(totalMaint)}
+              Fuel: ₹{fmt(totalFuel)} + Expenses: ₹{fmt(totalExpense)}
             </div>
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -194,20 +212,25 @@ export default function FuelPage() {
         footer={
           <>
             <button className="btn-secondary" onClick={() => setFuelModal(false)}>Cancel</button>
-            <button className="btn-primary" form="fuel-form" type="submit">Save</button>
+            <button className="btn-primary" form="fuel-form" type="submit" disabled={fuelMutation.isPending}>Save</button>
           </>
         }
       >
         <form id="fuel-form" onSubmit={fuelForm.handleSubmit(onFuelSubmit)}>
+          {fuelError && <div className="alert alert-error" style={{ marginBottom: 14 }}><span>{fuelError}</span></div>}
           <div className="form-group">
             <label className="field-label">Vehicle</label>
-            <select className="field-input" {...fuelForm.register('vehicle')}>
-              {vehicles.map(v => <option key={v}>{v}</option>)}
+            <select className="field-input" {...fuelForm.register('vehicleId', { required: true })}>
+              <option value="">Select vehicle...</option>
+              {vehicles.map(v => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label className="field-label">Date</label>
-            <input className="field-input" type="date" {...fuelForm.register('date', { required: true })} />
+            <label className="field-label">Trip (optional)</label>
+            <select className="field-input" {...fuelForm.register('tripId')}>
+              <option value="">None</option>
+              {trips.map(t => <option key={t.id} value={t.id}>{t.origin} → {t.destination}</option>)}
+            </select>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-group">
@@ -216,7 +239,7 @@ export default function FuelPage() {
             </div>
             <div className="form-group">
               <label className="field-label">Cost (₹)</label>
-              <input className="field-input" type="number" placeholder="3150" {...fuelForm.register('fuelCost', { required: true })} />
+              <input className="field-input" type="number" placeholder="3150" {...fuelForm.register('cost', { required: true })} />
             </div>
           </div>
         </form>
@@ -230,32 +253,44 @@ export default function FuelPage() {
         footer={
           <>
             <button className="btn-secondary" onClick={() => setExpModal(false)}>Cancel</button>
-            <button className="btn-primary" form="exp-form" type="submit">Save</button>
+            <button className="btn-primary" form="exp-form" type="submit" disabled={expenseMutation.isPending}>Save</button>
           </>
         }
       >
         <form id="exp-form" onSubmit={expForm.handleSubmit(onExpSubmit)}>
+          {expError && <div className="alert alert-error" style={{ marginBottom: 14 }}><span>{expError}</span></div>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-group">
-              <label className="field-label">Trip ID</label>
-              <input className="field-input" placeholder="TR001" {...expForm.register('trip', { required: true })} />
+              <label className="field-label">Vehicle</label>
+              <select className="field-input" {...expForm.register('vehicleId', { required: true })}>
+                <option value="">Select vehicle...</option>
+                {vehicles.map(v => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
+              </select>
             </div>
             <div className="form-group">
-              <label className="field-label">Vehicle</label>
-              <select className="field-input" {...expForm.register('vehicle')}>
-                {vehicles.map(v => <option key={v}>{v}</option>)}
+              <label className="field-label">Category</label>
+              <select className="field-input" {...expForm.register('category')}>
+                <option>Toll</option>
+                <option>Parking</option>
+                <option>Fine</option>
+                <option>Other</option>
               </select>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="form-group">
-              <label className="field-label">Toll (₹)</label>
-              <input className="field-input" type="number" placeholder="0" {...expForm.register('toll', { required: true })} />
-            </div>
-            <div className="form-group">
-              <label className="field-label">Other (₹)</label>
-              <input className="field-input" type="number" placeholder="0" {...expForm.register('other', { required: true })} />
-            </div>
+          <div className="form-group">
+            <label className="field-label">Trip (optional)</label>
+            <select className="field-input" {...expForm.register('tripId')}>
+              <option value="">None</option>
+              {trips.map(t => <option key={t.id} value={t.id}>{t.origin} → {t.destination}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="field-label">Amount (₹)</label>
+            <input className="field-input" type="number" placeholder="0" {...expForm.register('amount', { required: true })} />
+          </div>
+          <div className="form-group">
+            <label className="field-label">Description (optional)</label>
+            <input className="field-input" placeholder="e.g. Toll at Vadodara" {...expForm.register('description')} />
           </div>
         </form>
       </Modal>

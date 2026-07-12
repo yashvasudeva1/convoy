@@ -1,58 +1,73 @@
 /* dashboard */
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import Topbar from '@/components/layout/topbar';
 import StatusBadge from '@/components/statusbadge';
-
-const kpis = [
-  { label: 'Active Vehicles',       value: '53',  sub: 'total fleet' },
-  { label: 'Available Vehicles',    value: '42',  sub: 'ready to dispatch' },
-  { label: 'In Maintenance',        value: '05',  sub: 'in shop' },
-  { label: 'Active Trips',          value: '18',  sub: 'on the road' },
-  { label: 'Pending Trips',         value: '09',  sub: 'awaiting dispatch' },
-  { label: 'Drivers on Duty',       value: '26',  sub: 'currently active' },
-  { label: 'Fleet Utilization',     value: '81%', sub: 'of total fleet' },
-];
-
-const recentTrips = [
-  { id: 'TR001', vehicle: 'VAN-05',  driver: 'Alex',  status: 'On Trip',    eta: '45 min' },
-  { id: 'TR002', vehicle: 'TRK-12',  driver: 'John',  status: 'Completed',  eta: '—' },
-  { id: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', eta: '1h 10m' },
-  { id: 'TR006', vehicle: '—',       driver: '—',     status: 'Draft',      eta: 'Awaiting vehicle' },
-];
-
-const vehicleStatus = [
-  { label: 'Available', count: 42, color: 'var(--accent-green)' },
-  { label: 'On Trip',   count: 18, color: 'var(--accent-amber)' },
-  { label: 'In Shop',   count: 5,  color: 'var(--accent-blue)' },
-  { label: 'Retired',   count: 3,  color: 'var(--accent-red)' },
-];
+import { api } from '@/lib/api';
+import { TRIP_STATUS_TO_LABEL } from '@/lib/mappings';
+import { ApiDashboard, ApiDriver, ApiTrip, ApiVehicle } from '@/lib/types';
 
 export default function DashboardPage() {
+  const { data: dashboard, isLoading, isError } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => api.get<ApiDashboard>('/dashboard'),
+  });
+
+  const { data: trips = [] } = useQuery({
+    queryKey: ['trips'],
+    queryFn: () => api.get<ApiTrip[]>('/trips'),
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.get<ApiVehicle[]>('/vehicles'),
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: () => api.get<ApiDriver[]>('/drivers'),
+  });
+
+  const vehicleById = new Map(vehicles.map(v => [v.id, v]));
+  const driverById = new Map(drivers.map(d => [d.id, d]));
+  const recentTrips = [...trips].slice(0, 5);
+
+  const kpis = dashboard ? [
+    { label: 'Total Vehicles', value: String(dashboard.activeVehicles), sub: 'total fleet' },
+    { label: 'Available Vehicles', value: String(dashboard.availableVehicles), sub: 'ready to dispatch' },
+    { label: 'In Maintenance', value: String(dashboard.vehiclesInMaintenance), sub: 'in shop' },
+    { label: 'Vehicles On Trip', value: String(dashboard.onTripVehicles), sub: 'on the road' },
+    { label: 'Active Trips', value: String(dashboard.activeTrips), sub: 'dispatched' },
+    { label: 'Pending Trips', value: String(dashboard.pendingTrips), sub: 'awaiting dispatch' },
+    { label: 'Drivers on Duty', value: String(dashboard.driversOnDuty), sub: 'currently active' },
+  ] : [];
+
+  const retiredCount = dashboard
+    ? Math.max(0, dashboard.activeVehicles - dashboard.availableVehicles - dashboard.vehiclesInMaintenance - dashboard.onTripVehicles)
+    : 0;
+
+  const vehicleStatus = dashboard ? [
+    { label: 'Available', count: dashboard.availableVehicles, color: 'var(--accent-green)' },
+    { label: 'On Trip', count: dashboard.onTripVehicles, color: 'var(--accent-amber)' },
+    { label: 'In Shop', count: dashboard.vehiclesInMaintenance, color: 'var(--accent-blue)' },
+    { label: 'Retired', count: retiredCount, color: 'var(--accent-red)' },
+  ] : [];
+
   return (
     <>
       <Topbar title="Dashboard" />
       <div className="page-content">
-        {/* filters */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', alignSelf: 'center' }}>
-            Filters
-          </span>
-          {['Vehicle Type: All', 'Status: All', 'Region: All'].map(f => (
-            <select
-              key={f}
-              className="field-input"
-              style={{ width: 'auto', padding: '6px 28px 6px 10px', fontSize: 12 }}
-              defaultValue=""
-            >
-              <option value="">{f}</option>
-            </select>
-          ))}
-        </div>
+        {isError && (
+          <div className="alert alert-error" style={{ marginBottom: 20 }}>
+            <span>Could not load dashboard data.</span>
+          </div>
+        )}
 
         {/* kpi grid */}
         <div className="kpi-grid">
-          {kpis.map(k => (
+          {isLoading && <div style={{ color: 'var(--text-muted)', padding: '12px 0' }}>Loading KPIs...</div>}
+          {!isLoading && kpis.map(k => (
             <div className="kpi-item" key={k.label}>
               <div className="kpi-label">{k.label}</div>
               <div className="kpi-value">{k.value}</div>
@@ -74,19 +89,20 @@ export default function DashboardPage() {
                   <th>Vehicle</th>
                   <th>Driver</th>
                   <th>Status</th>
-                  <th>ETA</th>
                 </tr>
               </thead>
               <tbody>
                 {recentTrips.map(t => (
                   <tr key={t.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{t.id}</td>
-                    <td>{t.vehicle}</td>
-                    <td>{t.driver}</td>
-                    <td><StatusBadge label={t.status} /></td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t.eta}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{t.id.slice(0, 8)}</td>
+                    <td>{vehicleById.get(t.vehicleId)?.registrationNumber ?? '—'}</td>
+                    <td>{driverById.get(t.driverId)?.name ?? '—'}</td>
+                    <td><StatusBadge label={TRIP_STATUS_TO_LABEL[t.status]} /></td>
                   </tr>
                 ))}
+                {recentTrips.length === 0 && (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No trips yet.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

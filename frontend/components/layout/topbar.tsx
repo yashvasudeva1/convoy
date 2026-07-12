@@ -12,7 +12,6 @@ import { runSearch, SearchResult } from '@/lib/searchindex';
 
 interface ProfileFormData {
   name: string;
-  role: string;
   email: string;
 }
 
@@ -45,7 +44,7 @@ interface TopbarProps {
 export default function Topbar({ title }: TopbarProps) {
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { user, update } = useUser();
+  const { user, update, logout } = useUser();
 
   // notifications
   const [notifications, setNotifications]   = useState<Notification[]>(initialNotifications);
@@ -104,7 +103,7 @@ export default function Topbar({ title }: TopbarProps) {
   // profile
   const openEditProfile = () => {
     setProfileOpen(false);
-    reset({ name: user.name, role: user.role, email: user.email });
+    reset({ name: user.name, email: user.email });
     setProfileModalOpen(true);
   };
 
@@ -115,6 +114,7 @@ export default function Topbar({ title }: TopbarProps) {
 
   const signOut = () => {
     setProfileOpen(false);
+    logout();
     router.push('/login');
   };
 
@@ -569,15 +569,6 @@ export default function Topbar({ title }: TopbarProps) {
           <div className="form-group">
             <label className="field-label">Full Name</label>
             <input className="field-input" {...register('name', { required: true })} />
-          </div>
-          <div className="form-group">
-            <label className="field-label">Role</label>
-            <select className="field-input" {...register('role')}>
-              <option>Fleet Manager</option>
-              <option>Dispatcher</option>
-              <option>Safety Officer</option>
-              <option>Financial Analyst</option>
-            </select>
           </div>
           <div className="form-group">
             <label className="field-label">Email</label>

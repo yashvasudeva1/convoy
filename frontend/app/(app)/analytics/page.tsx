@@ -1,45 +1,19 @@
 /* analytics */
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import Topbar from '@/components/layout/topbar';
 import {
-  BarChart, Bar, LineChart, Line,
+  BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { useUser } from '@/components/usercontext';
 import AccessDenied from '@/components/accessdenied';
+import { api } from '@/lib/api';
+import { ApiAnalytics, ApiVehicle } from '@/lib/types';
 
-const kpis = [
-  { label: 'Fuel Efficiency', value: '8.4 km/l',  sub: 'average across fleet' },
-  { label: 'Fleet Utilization', value: '81%',      sub: 'active vs total' },
-  { label: 'Operational Cost', value: '₹34,070',   sub: 'fuel + maintenance' },
-  { label: 'Vehicle ROI',      value: '14.2%',     sub: 'net return on fleet' },
-];
-
-const monthlyRevenue = [
-  { month: 'Feb', revenue: 82000, cost: 26000 },
-  { month: 'Mar', revenue: 95000, cost: 29000 },
-  { month: 'Apr', revenue: 88000, cost: 31000 },
-  { month: 'May', revenue: 104000, cost: 34000 },
-  { month: 'Jun', revenue: 112000, cost: 32000 },
-  { month: 'Jul', revenue: 98000,  cost: 34070 },
-];
-
-const fuelEffData = [
-  { vehicle: 'VAN-05',   kmpl: 9.2 },
-  { vehicle: 'MINI-08',  kmpl: 11.4 },
-  { vehicle: 'TRUCK-04', kmpl: 6.1 },
-  { vehicle: 'TRUCK-11', kmpl: 5.8 },
-  { vehicle: 'VAN-09',   kmpl: 8.7 },
-];
-
-const costliest = [
-  { vehicle: 'TRUCK-11', cost: 18000 },
-  { vehicle: 'MINI-03',  cost: 6200 },
-  { vehicle: 'VAN-05',   cost: 2500 },
-];
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -52,9 +26,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       color: 'var(--text-primary)',
     }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {payload.map((p: any) => (
         <div key={p.name} style={{ color: p.color }}>
-          {p.name}: {typeof p.value === 'number' && p.name !== 'kmpl' ? `₹${p.value.toLocaleString('en-IN')}` : p.value}
+          {p.name}: {typeof p.value === 'number' && p.name === 'Cost' ? `₹${p.value.toLocaleString('en-IN')}` : p.value}
         </div>
       ))}
     </div>
@@ -63,20 +38,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function AnalyticsPage() {
   const { user } = useUser();
+
+  const { data: analytics, isLoading, isError } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => api.get<ApiAnalytics>('/analytics'),
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.get<ApiVehicle[]>('/vehicles'),
+  });
+
   if (user.role === 'Dispatcher' || user.role === 'Safety Officer') return <AccessDenied />;
+
+  const vehicleLabel = (id: string) => vehicles.find(v => v.id === id)?.registrationNumber ?? id.slice(0, 8);
+
+  const kpis = analytics ? [
+    { label: 'Fuel Efficiency', value: `${analytics.fuelEfficiency.fleetKmPerLiter.toFixed(1)} km/l`, sub: 'average across fleet' },
+    { label: 'Fleet Utilization', value: `${analytics.fleetUtilization.toFixed(0)}%`, sub: 'active vs total' },
+    { label: 'Operational Cost', value: `₹${analytics.operationalCost.totalOperationalCost.toLocaleString('en-IN')}`, sub: 'fuel + expenses' },
+    {
+      label: 'Cost Efficiency',
+      value: `${analytics.vehicleROI.reduce((s, v) => s + v.completedTrips, 0)} trips`,
+      sub: 'completed, fleet-wide',
+    },
+  ] : [];
+
+  const fuelEffData = analytics
+    ? analytics.fuelEfficiency.perVehicle.map(v => ({ vehicle: vehicleLabel(v.vehicleId), kmpl: Number(v.kmPerLiter.toFixed(1)) }))
+    : [];
+
+  const costliest = analytics
+    ? [...analytics.vehicleROI]
+      .filter(v => v.cost > 0)
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, 5)
+      .map(v => ({ vehicle: vehicleLabel(v.vehicleId), cost: v.cost }))
+    : [];
+
+  const roiData = analytics
+    ? analytics.vehicleROI.map(v => ({ vehicle: vehicleLabel(v.vehicleId), trips: v.completedTrips, cost: v.cost }))
+    : [];
 
   return (
     <>
       <Topbar title="Analytics" />
       <div className="page-content">
-        {/* export */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <button className="btn-secondary" style={{ fontSize: 12 }}>Export CSV</button>
-        </div>
+        {isError && (
+          <div className="alert alert-error" style={{ marginBottom: 16 }}>
+            <span>Could not load analytics data.</span>
+          </div>
+        )}
 
         {/* kpis */}
         <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 24 }}>
-          {kpis.map(k => (
+          {isLoading && <div style={{ color: 'var(--text-muted)', padding: '12px 0' }}>Loading KPIs...</div>}
+          {!isLoading && kpis.map(k => (
             <div className="kpi-item" key={k.label}>
               <div className="kpi-label">{k.label}</div>
               <div className="kpi-value" style={{ fontSize: 22 }}>{k.value}</div>
@@ -85,7 +102,7 @@ export default function AnalyticsPage() {
           ))}
         </div>
 
-        {/* roi formula */}
+        {/* cost efficiency formula */}
         <div style={{
           background: 'var(--bg-surface)',
           border: '1px solid var(--border)',
@@ -96,25 +113,23 @@ export default function AnalyticsPage() {
           marginBottom: 24,
           fontFamily: 'monospace',
         }}>
-          ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost
+          Cost Efficiency = Completed Trips / Operational Cost (fuel + expenses) — no revenue/acquisition-cost tracking yet
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, marginBottom: 16 }}>
-          {/* monthly revenue vs cost */}
+          {/* trips vs cost per vehicle */}
           <div className="surface">
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-muted)' }}>
-              <span className="section-title">Monthly Revenue vs Cost</span>
+              <span className="section-title">Completed Trips vs Cost by Vehicle</span>
             </div>
             <div style={{ padding: '16px 8px 8px' }}>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={monthlyRevenue} margin={{ left: 0, right: 0 }}>
+                <BarChart data={roiData} margin={{ left: 0, right: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-muted)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                  <XAxis dataKey="vehicle" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: 11, color: 'var(--text-secondary)', paddingTop: 8 }} />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent-green)" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="cost"    name="Cost"    fill="var(--accent-amber)" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="trips" name="Trips" fill="var(--accent-green)" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -144,6 +159,9 @@ export default function AnalyticsPage() {
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-red)' }}>₹{v.cost.toLocaleString('en-IN')}</span>
                 </div>
               ))}
+              {costliest.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No cost data yet.</div>
+              )}
             </div>
           </div>
         </div>
@@ -157,7 +175,7 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={fuelEffData} layout="vertical" margin={{ left: 20, right: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-muted)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 14]} unit=" km/l" />
+                <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} unit=" km/l" />
                 <YAxis type="category" dataKey="vehicle" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} width={70} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="kmpl" name="kmpl" fill="var(--accent-blue)" radius={[0, 2, 2, 0]} />

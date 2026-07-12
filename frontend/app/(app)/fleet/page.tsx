@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Topbar from '@/components/layout/topbar';
 import StatusBadge from '@/components/statusbadge';
 import Modal from '@/components/modal';
@@ -9,88 +10,119 @@ import { Pencil, Trash2, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useUser } from '@/components/usercontext';
 import AccessDenied from '@/components/accessdenied';
-
-type VehicleStatus = 'Available' | 'On Trip' | 'In Shop' | 'Retired';
-type VehicleType = 'Van' | 'Truck' | 'Mini' | 'Bus';
-
-interface Vehicle {
-  id: number;
-  regNo: string;
-  nameModel: string;
-  type: VehicleType;
-  capacity: string;
-  odometer: string;
-  acqCost: string;
-  status: VehicleStatus;
-}
-
-const initial: Vehicle[] = [
-  { id: 1, regNo: 'GJ01AB4521', nameModel: 'VAN-05',   type: 'Van',   capacity: '500 kg',  odometer: '74,000',  acqCost: '6,20,000',  status: 'Available' },
-  { id: 2, regNo: 'GJ01AB9981', nameModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton',   odometer: '182,000', acqCost: '24,50,000', status: 'On Trip' },
-  { id: 3, regNo: 'GJ01AB1120', nameModel: 'MINI-03',  type: 'Mini',  capacity: '1 Ton',   odometer: '66,000',  acqCost: '4,10,000',  status: 'In Shop' },
-  { id: 4, regNo: 'GJ01AB0087', nameModel: 'VAN-09',   type: 'Van',   capacity: '750 kg',  odometer: '241,900', acqCost: '5,90,000',  status: 'Retired' },
-  { id: 5, regNo: 'GJ01CD3312', nameModel: 'TRUCK-04', type: 'Truck', capacity: '3.5 Ton', odometer: '98,400',  acqCost: '18,00,000', status: 'Available' },
-  { id: 6, regNo: 'GJ01CD7721', nameModel: 'MINI-08',  type: 'Mini',  capacity: '800 kg',  odometer: '55,200',  acqCost: '3,60,000',  status: 'Available' },
-];
+import { api, ApiError } from '@/lib/api';
+import { LABEL_TO_VEHICLE_STATUS, VEHICLE_STATUS_TO_LABEL } from '@/lib/mappings';
+import { ApiVehicle } from '@/lib/types';
 
 interface FormData {
-  regNo: string;
-  nameModel: string;
-  type: VehicleType;
-  capacity: string;
-  odometer: string;
-  acqCost: string;
-  status: VehicleStatus;
+  registrationNumber: string;
+  make: string;
+  model: string;
+  capacityKg: number;
+  status: string;
 }
 
 export default function FleetPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(initial);
-  const [typeFilter, setTypeFilter] = useState('All');
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Vehicle | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<ApiVehicle | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [formError, setFormError] = useState('');
 
-  const { user } = useUser();
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+
+  const { data: vehicles = [], isLoading, isError } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.get<ApiVehicle[]>('/vehicles'),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: { registrationNumber: string; make: string; model: string; capacityKg: number; status: ApiVehicle['status'] }) =>
+      api.post<ApiVehicle>('/vehicles', payload),
+    onSuccess: () => {
+      invalidate();
+      setModalOpen(false);
+    },
+    onError: (err: unknown) => setFormError(err instanceof ApiError ? err.message : 'Something went wrong.'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<{ registrationNumber: string; make: string; model: string; capacityKg: number; status: ApiVehicle['status'] }> }) =>
+      api.put<ApiVehicle>(`/vehicles/${id}`, payload),
+    onSuccess: () => {
+      invalidate();
+      setModalOpen(false);
+    },
+    onError: (err: unknown) => setFormError(err instanceof ApiError ? err.message : 'Something went wrong.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/vehicles/${id}`),
+    onSuccess: () => {
+      invalidate();
+      setDeleteId(null);
+    },
+  });
 
   if (user.role === 'Safety Officer') return <AccessDenied />;
 
   const canEdit = user.role === 'Fleet Manager';
 
   const filtered = vehicles.filter(v => {
-    if (typeFilter !== 'All' && v.type !== typeFilter) return false;
-    if (statusFilter !== 'All' && v.status !== statusFilter) return false;
-    if (search && !v.regNo.toLowerCase().includes(search.toLowerCase()) && !v.nameModel.toLowerCase().includes(search.toLowerCase())) return false;
+    const statusLabel = VEHICLE_STATUS_TO_LABEL[v.status];
+    if (statusFilter !== 'All' && statusLabel !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!v.registrationNumber.toLowerCase().includes(q) && !v.make.toLowerCase().includes(q) && !v.model.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
   const openAdd = () => {
     setEditing(null);
-    reset({ type: 'Van', status: 'Available' });
+    setFormError('');
+    reset({ registrationNumber: '', make: '', model: '', capacityKg: 0, status: 'Available' });
     setModalOpen(true);
   };
 
-  const openEdit = (v: Vehicle) => {
+  const openEdit = (v: ApiVehicle) => {
     setEditing(v);
-    reset(v);
+    setFormError('');
+    reset({
+      registrationNumber: v.registrationNumber,
+      make: v.make,
+      model: v.model,
+      capacityKg: v.capacityKg,
+      status: VEHICLE_STATUS_TO_LABEL[v.status],
+    });
     setModalOpen(true);
   };
 
   const onSubmit = (data: FormData) => {
+    setFormError('');
+    const payload = {
+      registrationNumber: data.registrationNumber,
+      make: data.make,
+      model: data.model,
+      capacityKg: Number(data.capacityKg),
+      status: LABEL_TO_VEHICLE_STATUS[data.status],
+    };
     if (editing) {
-      setVehicles(prev => prev.map(v => v.id === editing.id ? { ...v, ...data } : v));
+      updateMutation.mutate({ id: editing.id, payload });
     } else {
-      setVehicles(prev => [...prev, { ...data, id: Date.now() }]);
+      createMutation.mutate(payload);
     }
-    setModalOpen(false);
   };
 
   const confirmDelete = () => {
     if (deleteId !== null) {
-      setVehicles(prev => prev.filter(v => v.id !== deleteId));
-      setDeleteId(null);
+      deleteMutation.mutate(deleteId);
     }
   };
 
@@ -101,13 +133,6 @@ export default function FleetPage() {
         {/* header */}
         <div className="section-header">
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select className="field-input" style={{ width: 'auto', fontSize: 12 }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-              <option value="All">Type: All</option>
-              <option>Van</option>
-              <option>Truck</option>
-              <option>Mini</option>
-              <option>Bus</option>
-            </select>
             <select className="field-input" style={{ width: 'auto', fontSize: 12 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="All">Status: All</option>
               <option>Available</option>
@@ -117,8 +142,8 @@ export default function FleetPage() {
             </select>
             <input
               className="field-input"
-              style={{ width: 200, fontSize: 12 }}
-              placeholder="Search reg. no..."
+              style={{ width: 220, fontSize: 12 }}
+              placeholder="Search reg. no. / make / model..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -132,7 +157,7 @@ export default function FleetPage() {
 
         {/* note */}
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-          Rule: Registration No. must be unique · Retired / In Shop vehicles are hidden from Trip Dispatcher
+          Rule: Registration No. must be unique · Vehicle status automatically changes on maintenance / trip dispatch
         </div>
 
         {/* table */}
@@ -141,25 +166,27 @@ export default function FleetPage() {
             <thead>
               <tr>
                 <th>Reg. No. (Unique)</th>
-                <th>Name / Model</th>
-                <th>Type</th>
+                <th>Make</th>
+                <th>Model</th>
                 <th>Capacity</th>
-                <th>Odometer</th>
-                <th>Acq. Cost</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(v => (
+              {isLoading && (
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>Loading vehicles...</td></tr>
+              )}
+              {isError && (
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--accent-red)', padding: 32 }}>Could not load vehicles.</td></tr>
+              )}
+              {!isLoading && !isError && filtered.map(v => (
                 <tr key={v.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>{v.regNo}</td>
-                  <td style={{ fontWeight: 500 }}>{v.nameModel}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{v.type}</td>
-                  <td>{v.capacity}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{v.odometer} km</td>
-                  <td>₹{v.acqCost}</td>
-                  <td><StatusBadge label={v.status} /></td>
+                  <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>{v.registrationNumber}</td>
+                  <td style={{ fontWeight: 500 }}>{v.make}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>{v.model}</td>
+                  <td>{v.capacityKg} kg</td>
+                  <td><StatusBadge label={VEHICLE_STATUS_TO_LABEL[v.status]} /></td>
                   <td style={{ textAlign: 'right' }}>
                     {canEdit && (
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -174,9 +201,9 @@ export default function FleetPage() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {!isLoading && !isError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No vehicles found.</td>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>No vehicles found.</td>
                 </tr>
               )}
             </tbody>
@@ -192,31 +219,36 @@ export default function FleetPage() {
         footer={
           <>
             <button className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
-            <button className="btn-primary" form="vehicle-form" type="submit">
+            <button className="btn-primary" form="vehicle-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
               {editing ? 'Save Changes' : 'Add Vehicle'}
             </button>
           </>
         }
       >
         <form id="vehicle-form" onSubmit={handleSubmit(onSubmit)}>
+          {formError && <div className="alert alert-error" style={{ marginBottom: 14 }}><span>{formError}</span></div>}
           <div className="form-group">
             <label className="field-label">Registration No.</label>
-            <input className="field-input" placeholder="e.g. GJ01AB1234" {...register('regNo', { required: 'Required' })} />
-            {errors.regNo && <p className="field-error">{errors.regNo.message}</p>}
-          </div>
-          <div className="form-group">
-            <label className="field-label">Name / Model</label>
-            <input className="field-input" placeholder="e.g. VAN-05" {...register('nameModel', { required: 'Required' })} />
+            <input className="field-input" placeholder="e.g. GJ01AB1234" {...register('registrationNumber', { required: 'Required' })} />
+            {errors.registrationNumber && <p className="field-error">{errors.registrationNumber.message}</p>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-group">
-              <label className="field-label">Type</label>
-              <select className="field-input" {...register('type')}>
-                <option>Van</option>
-                <option>Truck</option>
-                <option>Mini</option>
-                <option>Bus</option>
-              </select>
+              <label className="field-label">Make</label>
+              <input className="field-input" placeholder="e.g. Tata" {...register('make', { required: 'Required' })} />
+              {errors.make && <p className="field-error">{errors.make.message}</p>}
+            </div>
+            <div className="form-group">
+              <label className="field-label">Model</label>
+              <input className="field-input" placeholder="e.g. Ace Gold" {...register('model', { required: 'Required' })} />
+              {errors.model && <p className="field-error">{errors.model.message}</p>}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-group">
+              <label className="field-label">Capacity (kg)</label>
+              <input className="field-input" type="number" placeholder="e.g. 1000" {...register('capacityKg', { required: 'Required', min: 1 })} />
+              {errors.capacityKg && <p className="field-error">{errors.capacityKg.message}</p>}
             </div>
             <div className="form-group">
               <label className="field-label">Status</label>
@@ -226,20 +258,6 @@ export default function FleetPage() {
                 <option>Retired</option>
               </select>
             </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="form-group">
-              <label className="field-label">Capacity</label>
-              <input className="field-input" placeholder="e.g. 500 kg" {...register('capacity', { required: 'Required' })} />
-            </div>
-            <div className="form-group">
-              <label className="field-label">Odometer (km)</label>
-              <input className="field-input" placeholder="e.g. 74000" {...register('odometer', { required: 'Required' })} />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="field-label">Acquisition Cost (₹)</label>
-            <input className="field-input" placeholder="e.g. 620000" {...register('acqCost', { required: 'Required' })} />
           </div>
         </form>
       </Modal>

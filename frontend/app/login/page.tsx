@@ -4,15 +4,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/components/usercontext';
+import { api, ApiError } from '@/lib/api';
+import { LoginResponse } from '@/lib/types';
 
 const roles = ['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'];
 
 export default function LoginPage() {
   const router = useRouter();
-  const { update } = useUser();
+  const { login } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Dispatcher');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,15 +25,15 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    // mock auth
-    if (password.length < 4) {
-      setError('Invalid credentials. Account locked after 5 failed attempts.');
+    try {
+      const res = await api.post<LoginResponse>('/login', { email, password });
+      login(res.token, res.user);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server. Please try again.');
+    } finally {
       setLoading(false);
-      return;
     }
-    update({ role });
-    router.push('/dashboard');
   };
 
   return (
@@ -155,19 +156,6 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
-            </div>
-
-            <div className="form-group">
-              <label className="field-label">Role (RBAC)</label>
-              <select
-                className="field-input"
-                value={role}
-                onChange={e => setRole(e.target.value)}
-              >
-                {roles.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
