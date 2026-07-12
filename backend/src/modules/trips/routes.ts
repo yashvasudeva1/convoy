@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../middleware/auth";
 import { requireRole } from "../../middleware/rbac";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { createTripSchema } from "./schemas";
+import { completeTripSchema, createTripSchema } from "./schemas";
 import {
   cancelTrip,
   completeTrip,
@@ -46,7 +46,8 @@ tripsRouter.patch(
   "/:id/complete",
   requireRole("FLEET_MANAGER", "DISPATCHER"),
   asyncHandler(async (req, res) => {
-    const trip = await completeTrip(req.params.id);
+    const input = completeTripSchema.parse(req.body ?? {});
+    const trip = await completeTrip(req.params.id, input);
     res.json(trip);
   })
 );

@@ -39,6 +39,6 @@ export async function closeMaintenanceHandler(req: Request, res: Response) {
     throw new AppError(400, parsed.error.issues[0]?.message ?? "Invalid request body");
   }
 
-  const log = await maintenanceService.closeMaintenanceLog(req.params.id, parsed.data.notes);
+  const log = await maintenanceService.closeMaintenanceLog(req.params.id, parsed.data.notes, parsed.data.cost);
   res.json(log);
 }

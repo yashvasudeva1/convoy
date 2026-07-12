@@ -1,6 +1,6 @@
 import { prisma } from "../../config/db";
 import { AppError } from "../../middleware/errorHandler";
-import { CreateTripInput } from "./schemas";
+import { CompleteTripInput, CreateTripInput } from "./schemas";
 import { assertDriverAssignable, assertVehicleAssignable } from "./rules";
 
 export async function createTrip(input: CreateTripInput) {
@@ -22,6 +22,8 @@ export async function createTrip(input: CreateTripInput) {
       origin: input.origin,
       destination: input.destination,
       cargoWeightKg: input.cargoWeightKg,
+      plannedDistanceKm: input.plannedDistanceKm,
+      revenue: input.revenue,
     },
   });
 }
@@ -60,7 +62,7 @@ export async function dispatchTrip(tripId: string) {
   });
 }
 
-export async function completeTrip(tripId: string) {
+export async function completeTrip(tripId: string, input: CompleteTripInput = {}) {
   return prisma.$transaction(async (tx) => {
     const trip = await tx.trip.findUnique({ where: { id: tripId } });
     if (!trip) throw new AppError(404, "Trip not found");
@@ -68,18 +70,44 @@ export async function completeTrip(tripId: string) {
       throw new AppError(422, `Cannot complete trip in status ${trip.status}`);
     }
 
+    const vehicle = await tx.vehicle.findUnique({ where: { id: trip.vehicleId } });
+    if (!vehicle) throw new AppError(404, "Vehicle not found");
+
     await tx.vehicle.update({
       where: { id: trip.vehicleId },
-      data: { status: "AVAILABLE" },
+      data: {
+        status: "AVAILABLE",
+        odometerKm:
+          input.finalOdometerKm != null && input.finalOdometerKm > vehicle.odometerKm
+            ? input.finalOdometerKm
+            : undefined,
+      },
     });
     await tx.driver.update({
       where: { id: trip.driverId },
       data: { status: "AVAILABLE" },
     });
 
+    if (input.fuelConsumedLiters != null && input.fuelCost != null) {
+      await tx.fuelLog.create({
+        data: {
+          tripId,
+          vehicleId: trip.vehicleId,
+          liters: input.fuelConsumedLiters,
+          cost: input.fuelCost,
+          odometer: input.finalOdometerKm,
+        },
+      });
+    }
+
     return tx.trip.update({
       where: { id: tripId },
-      data: { status: "COMPLETED", completedAt: new Date() },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        finalOdometerKm: input.finalOdometerKm,
+        fuelConsumedLiters: input.fuelConsumedLiters,
+      },
     });
   });
 }
