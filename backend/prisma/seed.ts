@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient, RoleName } from "@prisma/client";
 import { hashPassword } from "../src/utils/password";
+import { generateDummyData } from "./dummyData";
 
 const prisma = new PrismaClient();
 
@@ -38,60 +39,115 @@ async function main() {
     });
   }
 
-  const vehicle1 = await prisma.vehicle.upsert({
-    where: { registrationNumber: "TN-01-AB-1234" },
-    update: {},
-    create: {
-      registrationNumber: "TN-01-AB-1234",
-      make: "Tata",
-      model: "Ace Gold",
-      capacityKg: 1000,
-      status: "AVAILABLE",
-    },
-  });
+  const dummy = generateDummyData();
 
-  const vehicle2 = await prisma.vehicle.upsert({
-    where: { registrationNumber: "TN-02-CD-5678" },
-    update: {},
-    create: {
-      registrationNumber: "TN-02-CD-5678",
-      make: "Ashok Leyland",
-      model: "Dost+",
-      capacityKg: 1500,
-      status: "AVAILABLE",
-    },
-  });
+  const vehicleRecords = [];
+  for (const v of dummy.vehicles) {
+    vehicleRecords.push(
+      await prisma.vehicle.upsert({
+        where: { registrationNumber: v.registrationNumber },
+        update: {},
+        create: v,
+      })
+    );
+  }
 
-  const driver1 = await prisma.driver.upsert({
-    where: { licenseNumber: "DL-TN-0001" },
-    update: {},
-    create: {
-      name: "Ravi Kumar",
-      licenseNumber: "DL-TN-0001",
-      licenseExpiry: new Date("2027-06-30"),
-      safetyScore: 95,
-      status: "AVAILABLE",
-    },
-  });
-
-  const driver2 = await prisma.driver.upsert({
-    where: { licenseNumber: "DL-TN-0002" },
-    update: {},
-    create: {
-      name: "Priya Singh",
-      licenseNumber: "DL-TN-0002",
-      licenseExpiry: new Date("2027-03-15"),
-      safetyScore: 88,
-      status: "AVAILABLE",
-    },
-  });
+  const driverRecords = [];
+  for (const d of dummy.drivers) {
+    driverRecords.push(
+      await prisma.driver.upsert({
+        where: { licenseNumber: d.licenseNumber },
+        update: {},
+        create: d,
+      })
+    );
+  }
 
   console.log("Seeded roles and demo users:");
   for (const demoUser of DEMO_USERS) {
     console.log(`  ${demoUser.role.padEnd(20)} ${demoUser.email}  (password: ${DEMO_PASSWORD})`);
   }
-  console.log("Seeded vehicles:", [vehicle1.registrationNumber, vehicle2.registrationNumber]);
-  console.log("Seeded drivers:", [driver1.licenseNumber, driver2.licenseNumber]);
+  console.log(`Seeded ${vehicleRecords.length} vehicles, ${driverRecords.length} drivers.`);
+
+  const existingTripCount = await prisma.trip.count();
+  if (existingTripCount >= dummy.trips.length) {
+    console.log(`Skipping trip/fuel/expense/maintenance seed (already ${existingTripCount} trips present).`);
+    return;
+  }
+
+  const tripRecords = [];
+  for (const t of dummy.trips) {
+    tripRecords.push(
+      await prisma.trip.create({
+        data: {
+          vehicleId: vehicleRecords[t.vehicleIdx].id,
+          driverId: driverRecords[t.driverIdx].id,
+          origin: t.origin,
+          destination: t.destination,
+          cargoWeightKg: t.cargoWeightKg,
+          plannedDistanceKm: t.plannedDistanceKm,
+          finalOdometerKm: t.finalOdometerKm ?? undefined,
+          fuelConsumedLiters: t.fuelConsumedLiters ?? undefined,
+          revenue: t.revenue,
+          status: t.status,
+          createdAt: t.createdAt,
+          dispatchedAt: t.dispatchedAt ?? undefined,
+          completedAt: t.completedAt ?? undefined,
+          cancelledAt: t.cancelledAt ?? undefined,
+        },
+      })
+    );
+  }
+  console.log(`Seeded ${tripRecords.length} trips.`);
+
+  let fuelCount = 0;
+  for (const f of dummy.fuelLogs) {
+    await prisma.fuelLog.create({
+      data: {
+        tripId: f.tripIdx !== null ? tripRecords[f.tripIdx].id : undefined,
+        vehicleId: vehicleRecords[f.vehicleIdx].id,
+        liters: f.liters,
+        cost: f.cost,
+        odometer: f.odometer,
+        loggedAt: f.loggedAt,
+      },
+    });
+    fuelCount++;
+  }
+  console.log(`Seeded ${fuelCount} fuel logs.`);
+
+  let expenseCount = 0;
+  for (const e of dummy.expenseLogs) {
+    await prisma.expenseLog.create({
+      data: {
+        tripId: e.tripIdx !== null ? tripRecords[e.tripIdx].id : undefined,
+        vehicleId: vehicleRecords[e.vehicleIdx].id,
+        category: e.category,
+        amount: e.amount,
+        description: e.description,
+        loggedAt: e.loggedAt,
+      },
+    });
+    expenseCount++;
+  }
+  console.log(`Seeded ${expenseCount} expense logs.`);
+
+  let maintenanceCount = 0;
+  for (const m of dummy.maintenanceLogs) {
+    await prisma.maintenanceLog.create({
+      data: {
+        vehicleId: vehicleRecords[m.vehicleIdx].id,
+        reason: m.reason,
+        notes: m.notes,
+        cost: m.cost,
+        status: m.status,
+        openedAt: m.openedAt,
+        closedAt: m.closedAt ?? undefined,
+      },
+    });
+    maintenanceCount++;
+  }
+  console.log(`Seeded ${maintenanceCount} maintenance logs.`);
 }
 
 main()
