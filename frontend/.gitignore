@@ -43,11 +43,9 @@ next-env.d.ts
 
 # AI generation files and settings
 AGENTS.md
-CLAUDE.md
 .agents/
 .gemini/
 .cursor/
 .cursorrules
 .cline/
-.claude/
 cline_docs/
